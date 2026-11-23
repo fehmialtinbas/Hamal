@@ -26,6 +26,8 @@ read_globals = {
   "GetAddOnMetadata",
   "geterrorhandler",
   "GetNormalizedRealmName",
+  "GetCurrentRegion",
+  "GetRealmID",
   "GetRealmName",
   "ITEM_QUALITY_COLORS",
   "MenuUtil",
