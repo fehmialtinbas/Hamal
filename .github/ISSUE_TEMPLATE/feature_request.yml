@@ -1,0 +1,15 @@
+name: Idea
+description: Something Hamal could do better or should also do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Hamal to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How would you use it?
+      description: The situation in the game where you'd want it.

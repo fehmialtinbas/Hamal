@@ -222,3 +222,9 @@ ln -s "$PWD" "/Applications/World of Warcraft/_forever_/Interface/AddOns/Hamal"
 Then `/reload` in the game after each change.
 
 Releases are packaged by the BigWigs packager when a `v*` tag is pushed (see `.github/workflows/release.yml`).
+
+## Contributing
+
+Bugs and ideas go in the [issues](https://github.com/fehmialtinbas/Hamal/issues), and pull requests are
+welcome. Read the [contributing guide](https://github.com/fehmialtinbas/Hamal/blob/main/.github/CONTRIBUTING.md)
+first: it has the four rules every change keeps.
