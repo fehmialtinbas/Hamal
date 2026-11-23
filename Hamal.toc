@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: Hamal
+## Notes: Sends the right items to your bank alts from the mailbox.
+## Author: fehmialtinbas
+## Version: @project-version@
+## SavedVariables: HamalDB
+## IconTexture: Interface\Icons\INV_Letter_15
+
+Core.lua
+Categories.lua
+Mules.lua
+Rules.lua
+Scanner.lua
+Mailer.lua
+UI.lua
+Commands.lua

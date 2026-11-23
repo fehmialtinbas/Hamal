@@ -1,0 +1,25 @@
+# Push a tag like v0.1.0 to build the addon zip and upload it.
+# Uploads need repository secrets: CF_API_KEY (CurseForge) and WAGO_API_TOKEN (Wago),
+# plus "## X-Curse-Project-ID" / "## X-Wago-ID" lines in Hamal.toc once the projects exist.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: BigWigsMods/packager@v2

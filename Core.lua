@@ -1,0 +1,123 @@
+-- Hamal: carries the right items from your bags to your bank alts at the mailbox.
+local addonName, ns = ...
+
+ns.name = addonName
+
+local PREFIX = "|cffe6b85cHamal|r: "
+
+function ns.Print(fmt, ...)
+  local msg = fmt
+  if select("#", ...) > 0 then
+    msg = string.format(fmt, ...)
+  end
+  if DEFAULT_CHAT_FRAME then
+    DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. msg)
+  else
+    print(PREFIX .. msg)
+  end
+end
+
+function ns.Trim(s)
+  return (s:gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
+-- "  Vault   Keeper " -> "Vault Keeper"
+function ns.CleanName(name)
+  return (ns.Trim(name):gsub("%s+", " "))
+end
+
+-- Names are compared case-insensitively with single spaces, so
+-- "vault  keeper" and "Vault Keeper" are the same bank alt.
+function ns.NormalizeName(name)
+  if type(name) ~= "string" then return nil end
+  local s = ns.CleanName(name):lower()
+  if s == "" then return nil end
+  return s
+end
+
+function ns.FormatMoney(copper)
+  if GetCoinTextureString then return GetCoinTextureString(copper) end
+  return tostring(copper) .. "c"
+end
+
+function ns.ItemLabel(itemID)
+  local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+  if getInfo then
+    local name, link = getInfo(itemID)
+    if link or name then return link or name end
+  end
+  return "item " .. tostring(itemID)
+end
+
+-- Saved data ------------------------------------------------------------------
+
+ns.DB_VERSION = 1
+
+local DEFAULTS = {
+  -- [normalized name] = { name = "Vault Keeper", categories = { cloth = true }, items = { [2589] = true } }
+  mules = {},
+  -- [alias] = normalized bank alt name
+  aliases = {},
+  -- [itemID] = true: never mailed by Hamal
+  exclude = {},
+  options = {
+    autoAttach = true, -- fill the mail as soon as a bank alt's name is typed in "To:"
+    chain = true,      -- after one mail goes out, send the next batch without another click
+  },
+}
+
+local function applyDefaults(target, defaults)
+  for key, value in pairs(defaults) do
+    if type(value) == "table" then
+      if type(target[key]) ~= "table" then target[key] = {} end
+      applyDefaults(target[key], value)
+    elseif target[key] == nil then
+      target[key] = value
+    end
+  end
+end
+
+function ns.InitDB()
+  if type(HamalDB) ~= "table" then HamalDB = {} end
+  applyDefaults(HamalDB, DEFAULTS)
+  HamalDB.version = ns.DB_VERSION
+  ns.db = HamalDB
+  return ns.db
+end
+
+-- Events ----------------------------------------------------------------------
+
+local eventFrame = CreateFrame("Frame")
+local handlers = {}
+
+function ns.On(event, fn)
+  if not handlers[event] then
+    handlers[event] = {}
+    -- Some clients error on unknown event names; a missing event must not break the addon.
+    pcall(eventFrame.RegisterEvent, eventFrame, event)
+  end
+  local list = handlers[event]
+  list[#list + 1] = fn
+end
+
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+  local list = handlers[event]
+  if not list then return end
+  for i = 1, #list do
+    list[i](...)
+  end
+end)
+
+local initCallbacks = {}
+
+function ns.OnInit(fn)
+  initCallbacks[#initCallbacks + 1] = fn
+end
+
+ns.On("ADDON_LOADED", function(name)
+  if name ~= addonName then return end
+  ns.InitDB()
+  for i = 1, #initCallbacks do
+    initCallbacks[i]()
+  end
+end)
