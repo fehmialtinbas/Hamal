@@ -66,6 +66,11 @@ function handlers.status()
     (MailFrame and SendMailNameEditBox) and "yes" or "no")
   ns.Print("  options: fill on name %s | one-click chain %s | send on open %s",
     onOff(db.options.autoAttach), onOff(db.options.chain), onOff(db.options.autoSendOnOpen))
+  if ns.errorCount > 0 then
+    ns.Print("  errors this session: %d, last: %s", ns.errorCount, ns.lastError or "?")
+  else
+    ns.Print("  errors this session: none")
+  end
   local counts = ns.Scanner.CountAll(db)
   local keys = ns.Mules.SortedKeys(db)
   if #keys == 0 then ns.Print("  no bank alts yet") end
@@ -274,4 +279,4 @@ end
 
 SLASH_HAMAL1 = "/hamal"
 SLASH_HAMAL2 = "/ham"
-SlashCmdList.HAMAL = Commands.Run
+SlashCmdList.HAMAL = ns.Safely(Commands.Run)

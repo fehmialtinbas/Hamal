@@ -172,8 +172,11 @@ function World:installGlobals()
     if w.cursor then return "item", w.cursor.itemID end
   end
 
+  w.calls = { info = 0, request = 0 }
   _G.C_Item = {
-    RequestLoadItemDataByID = function() end,
+    -- Items the test defined count as cached; anything else would need the server.
+    IsItemDataCachedByID = function(id) return w.items[id] ~= nil end,
+    RequestLoadItemDataByID = function() w.calls.request = w.calls.request + 1 end,
     GetItemInfoInstant = function(id)
       local d = w.items[id]
       if not d then return nil end
@@ -189,6 +192,7 @@ function World:installGlobals()
   _G.C_Container = {
     GetContainerNumSlots = function(bag) return w.bagSize[bag] or 0 end,
     GetContainerItemInfo = function(bag, slot)
+      w.calls.info = w.calls.info + 1
       local it = w.bags[bag] and w.bags[bag][slot]
       if not it then return nil end
       local d = w.items[it.itemID]

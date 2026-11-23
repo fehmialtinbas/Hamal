@@ -258,10 +258,10 @@ end
 -- Sending to every bank alt ------------------------------------------------------
 
 -- Active bank alts (not this character) with something waiting in the bags.
-function Mailer.PendingAlts()
+function Mailer.PendingAlts(counts)
   local db = ns.db
   local me = ns.NormalizeName(ns.PlayerName())
-  local counts = ns.Scanner.CountAll(db)
+  counts = counts or ns.Scanner.CountAll(db)
   local keys, stacks = {}, 0
   for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
     local n = counts[key] or 0
@@ -327,7 +327,7 @@ function Mailer.Finish()
   refresh()
   if Mailer.run then
     -- On to the next bank alt once the form has been reset.
-    C_Timer.After(REFILL_DELAY, function()
+    ns.After(REFILL_DELAY, function()
       if Mailer.run and not Mailer.session and Mailer.IsMailboxOpen() then Mailer.NextInRun(false) end
     end)
   end
@@ -349,7 +349,7 @@ local function onSendMail(recipient)
   s.inFlight = s.attached
   s.attached = {}
   local mailNumber = s.mails
-  C_Timer.After(SEND_TIMEOUT, function()
+  ns.After(SEND_TIMEOUT, function()
     if Mailer.session == s and s.sending and s.mails == mailNumber then
       s.sending = false
       s.attached = s.inFlight or {}
@@ -373,7 +373,7 @@ local function onSendSuccess()
   end
   -- Blizzard clears the form after a send; wait for that, then fill the next mail.
   s.awaitingRefill = true
-  C_Timer.After(REFILL_DELAY, function()
+  ns.After(REFILL_DELAY, function()
     if Mailer.session ~= s then return end
     s.awaitingRefill = false
     if not Mailer.IsMailboxOpen() then return end
@@ -381,7 +381,7 @@ local function onSendSuccess()
     Mailer.AttachNext()
     refresh()
     if s.chain and ns.db.options.chain then
-      C_Timer.After(CHAIN_DELAY, function()
+      ns.After(CHAIN_DELAY, function()
         if Mailer.session == s and not s.sending then Mailer.Send() end
       end)
     end
@@ -416,7 +416,7 @@ local function onBlocked(who, func)
     else
       -- Our SendMail hook may still run for the refused call; tell it to ignore that one.
       s.blocked = true
-      C_Timer.After(0, function() s.blocked = false end)
+      ns.After(0, function() s.blocked = false end)
     end
   end
   ns.Print("The game wants a click for every mail here, so I turned off auto-chaining. "
@@ -439,7 +439,7 @@ local function onRecipientChanged(userInput)
   if not key or not db.options.autoAttach then return end
   typeToken = typeToken + 1
   local token = typeToken
-  C_Timer.After(TYPE_DELAY, function()
+  ns.After(TYPE_DELAY, function()
     if token ~= typeToken or Mailer.session or not Mailer.IsMailboxOpen() then return end
     if ns.Mules.FindExact(db, SendMailNameEditBox:GetText()) ~= key then return end
     Mailer.Start(key)
@@ -468,16 +468,16 @@ local hooked = false
 function Mailer.HookMailFrame()
   if hooked then return end
   hooked = true
-  if MailFrame then MailFrame:HookScript("OnHide", onMailboxClosed) end
+  if MailFrame then MailFrame:HookScript("OnHide", ns.Safely(onMailboxClosed)) end
   if SendMailNameEditBox then
-    SendMailNameEditBox:HookScript("OnTextChanged", function(_, userInput)
+    SendMailNameEditBox:HookScript("OnTextChanged", ns.Safely(function(_, userInput)
       onRecipientChanged(userInput)
-    end)
+    end))
   end
 end
 
 ns.OnInit(function()
-  hooksecurefunc("SendMail", onSendMail)
+  hooksecurefunc("SendMail", ns.Safely(onSendMail))
 end)
 
 local OPEN_DELAY = 0.5
@@ -486,12 +486,13 @@ function Mailer.OnMailboxOpened()
   if mailboxHandled then return end
   mailboxHandled = true
   Mailer.HookMailFrame()
+  if ns.Items and ns.db then ns.Items.RecordSeen(ns.db) end
   if ns.UI then
     ns.UI.Create()
     ns.UI.Refresh()
   end
   if ns.db and ns.db.options.autoSendOnOpen then
-    C_Timer.After(OPEN_DELAY, function()
+    ns.After(OPEN_DELAY, function()
       if Mailer.IsMailboxOpen() and not Mailer.session then Mailer.SendAll(false, true) end
     end)
   end

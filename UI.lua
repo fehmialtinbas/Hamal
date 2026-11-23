@@ -34,7 +34,7 @@ local function getMuleButton(i)
   if not button then
     button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     button:SetHeight(BUTTON_HEIGHT)
-    button:SetScript("OnClick", onMuleClick)
+    button:SetScript("OnClick", ns.Safely(onMuleClick))
     muleButtons[i] = button
   end
   return button
@@ -44,8 +44,8 @@ local function getItemButton(i)
   local button = itemButtons[i]
   if not button then
     button = ns.Widgets.IconButton(panel, ICON)
-    button:SetScript("OnClick", onItemClick)
-    button:SetScript("OnEnter", onItemEnter)
+    button:SetScript("OnClick", ns.Safely(onItemClick))
+    button:SetScript("OnEnter", ns.Safely(onItemEnter))
     itemButtons[i] = button
   end
   return button
@@ -87,21 +87,21 @@ function UI.Create()
 
   sendButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   sendButton:SetHeight(BUTTON_HEIGHT)
-  sendButton:SetScript("OnClick", function() ns.Mailer.Send() end)
+  sendButton:SetScript("OnClick", ns.Safely(function() ns.Mailer.Send() end))
 
   sendAllButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   sendAllButton:SetHeight(BUTTON_HEIGHT)
-  sendAllButton:SetScript("OnClick", function() ns.Mailer.SendAll(true) end)
+  sendAllButton:SetScript("OnClick", ns.Safely(function() ns.Mailer.SendAll(true) end))
 
   settingsButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   settingsButton:SetHeight(BUTTON_HEIGHT)
   settingsButton:SetText("Settings")
-  settingsButton:SetScript("OnClick", function()
+  settingsButton:SetScript("OnClick", ns.Safely(function()
     local session = ns.Mailer.session
     ns.Config.Open(session and session.key)
-  end)
+  end))
 
-  panel:HookScript("OnShow", function() UI.Refresh() end)
+  panel:HookScript("OnShow", ns.Safely(function() UI.Refresh() end))
 
   UI.panel, UI.status, UI.sendButton, UI.settingsButton = panel, status, sendButton, settingsButton
   UI.sendAllButton = sendAllButton
@@ -177,7 +177,7 @@ function UI.Refresh()
   local busy = session and session.sending
 
   local y = -PAD - 20
-  local pendingAlts, pendingStacks = ns.Mailer.PendingAlts()
+  local pendingAlts, pendingStacks = ns.Mailer.PendingAlts(counts)
   if not session and not ns.Mailer.run and #pendingAlts > 0 then
     fullWidth(sendAllButton, y)
     sendAllButton:SetText(("Send all: %d stack(s) to %d alt(s)"):format(pendingStacks, #pendingAlts))
@@ -231,6 +231,18 @@ function UI.Refresh()
   panel:SetHeight(-y + PAD)
 end
 
+-- Bursts of bag and attachment changes (12 attachments = 12 events) become a single
+-- refresh on the next frame, and nothing at all while the panel isn't on screen.
+local refreshQueued = false
+function UI.RequestRefresh()
+  if refreshQueued or not panel or not panel:IsVisible() then return end
+  refreshQueued = true
+  ns.After(0, function()
+    refreshQueued = false
+    UI.Refresh()
+  end)
+end
+
 -- Created when a mailbox opens (Mailer.OnMailboxOpened).
-ns.On("BAG_UPDATE_DELAYED", UI.Refresh)
-ns.On("MAIL_SEND_INFO_UPDATE", UI.Refresh)
+ns.On("BAG_UPDATE_DELAYED", UI.RequestRefresh)
+ns.On("MAIL_SEND_INFO_UPDATE", UI.RequestRefresh)

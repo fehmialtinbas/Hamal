@@ -94,6 +94,16 @@ Hamal mails a character only when it is certainly one of yours and on the realm 
 The one thing Hamal cannot know: if you delete a character, its name becomes free for others.
 Use **Forget** on a bank alt before you delete it.
 
+## Light and quiet
+
+- Nothing runs every frame, and nothing runs while you play away from a mailbox: looting and
+  moving items cost Hamal nothing.
+- At the mailbox, bursts of bag and attachment events are merged into one refresh.
+- Item names for the Items tab are asked from the server only for the rows on screen, and item
+  events are only listened to while that tab is open.
+- No chat messages at login. If something in Hamal ever breaks, you get one short line per session
+  instead of error popups; `/hamal status` shows the details for a bug report.
+
 ## What is never sent
 
 - Soulbound, quest and locked items

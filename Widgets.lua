@@ -34,7 +34,7 @@ function Widgets.IconButton(parent, size)
   button.count = button:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
   button.count:SetPoint("BOTTOMRIGHT", -1, 1)
   button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-  button:SetScript("OnLeave", Widgets.HideTooltip)
+  button:SetScript("OnLeave", ns.Safely(Widgets.HideTooltip))
   return button
 end
 

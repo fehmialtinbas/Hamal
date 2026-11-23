@@ -35,8 +35,10 @@ local showAllCharacters = false -- also list characters on other realms and hidd
 local charOffset, itemOffset = 0, 0
 local itemIconsY = 0
 local ui = {} -- widgets, also exposed as Config.widgets
+local itemsCache -- the Items tab's list; rebuilt only after something changed, not on scroll
 
 local function changed()
+  itemsCache = nil
   Config.Refresh()
   if ns.UI then ns.UI.Refresh() end
 end
@@ -56,7 +58,7 @@ local function inputBox(parent, width, x, y)
   box:SetSize(width, 20)
   box:SetPoint("TOPLEFT", x + 6, y) -- the template draws its border outside the box
   box:SetAutoFocus(false)
-  box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  box:SetScript("OnEscapePressed", ns.Safely(function(self) self:ClearFocus() end))
   return box
 end
 
@@ -68,7 +70,7 @@ local function checkBox(parent, x, y, labelWidth, onClick)
   check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
   check.label:SetWidth(labelWidth)
   check.label:SetJustifyH("LEFT")
-  check:HookScript("OnClick", onClick) -- keep the template's own click handling (sound)
+  check:HookScript("OnClick", ns.Safely(onClick)) -- keep the template's own click handling (sound)
   return check
 end
 
@@ -77,7 +79,7 @@ local function button(parent, label, width, x, y, onClick)
   b:SetSize(width, 22)
   b:SetPoint("TOPLEFT", x, y)
   b:SetText(label)
-  b:SetScript("OnClick", onClick)
+  b:SetScript("OnClick", ns.Safely(onClick))
   return b
 end
 
@@ -90,9 +92,9 @@ local function dropZone(parent, x, y, tooltip, onItem)
     local itemID = ns.Widgets.TakeCursorItem()
     if itemID then onItem(itemID) end
   end
-  zone:SetScript("OnReceiveDrag", receive)
-  zone:SetScript("OnClick", receive)
-  zone:SetScript("OnEnter", function(self) ns.Widgets.ShowTextTooltip(self, tooltip) end)
+  zone:SetScript("OnReceiveDrag", ns.Safely(receive))
+  zone:SetScript("OnClick", ns.Safely(receive))
+  zone:SetScript("OnEnter", ns.Safely(function(self) ns.Widgets.ShowTextTooltip(self, tooltip) end))
   return zone
 end
 
@@ -103,8 +105,8 @@ local function layoutIcons(parent, pool, ids, x, y, onClick, more)
     local b = pool[i]
     if not b then
       b = ns.Widgets.IconButton(parent, ICON)
-      b:SetScript("OnClick", function(self) onClick(self.itemID) end)
-      b:SetScript("OnEnter", function(self) ns.Widgets.ShowItemTooltip(self, self.itemID, "Click to remove") end)
+      b:SetScript("OnClick", ns.Safely(function(self) onClick(self.itemID) end))
+      b:SetScript("OnEnter", ns.Safely(function(self) ns.Widgets.ShowItemTooltip(self, self.itemID, "Click to remove") end))
       pool[i] = b
     end
     b.itemID = ids[i]
@@ -220,16 +222,16 @@ local function buildAltsTab(pane)
     row:SetSize(LEFT_WIDTH, CHECK)
     row:SetPoint("TOPLEFT", LEFT, -24 - (i - 1) * (CHECK + 2))
     row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-    row:SetScript("OnClick", selectRow)
+    row:SetScript("OnClick", ns.Safely(selectRow))
     row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
     row.check:SetSize(CHECK, CHECK)
     row.check:SetPoint("LEFT", 0, 0)
     row.check.row = row
-    row.check:HookScript("OnClick", toggleBankAlt)
-    row.check:SetScript("OnEnter", function(self)
+    row.check:HookScript("OnClick", ns.Safely(toggleBankAlt))
+    row.check:SetScript("OnEnter", ns.Safely(function(self)
       ns.Widgets.ShowTextTooltip(self, "Bank alt: Hamal mails items to this character.")
-    end)
-    row.check:SetScript("OnLeave", ns.Widgets.HideTooltip)
+    end))
+    row.check:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
     row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.label:SetPoint("LEFT", CHECK + 4, 0)
     row.label:SetPoint("RIGHT", -2, 0)
@@ -237,10 +239,10 @@ local function buildAltsTab(pane)
     ui.charRows[i] = row
   end
   pane:EnableMouseWheel(true)
-  pane:SetScript("OnMouseWheel", function(_, delta)
+  pane:SetScript("OnMouseWheel", ns.Safely(function(_, delta)
     charOffset = math.max(0, charOffset - delta)
     Config.Refresh()
-  end)
+  end))
 
   local listBottom = -24 - CHAR_ROWS * (CHECK + 2)
   ui.emptyChars = text(pane, "Log in on your bank alts once\nand they show up here.", "GameFontDisableSmall", LEFT, -28)
@@ -257,10 +259,10 @@ local function buildAltsTab(pane)
   ui.subHeader = text(pane, "", "GameFontDisableSmall", RIGHT, -26)
   ui.forgetButton = button(pane, "Forget", 90, WIDTH - 14 - 90, -2, confirmForget)
   ui.hideButton = button(pane, "Hide", 90, WIDTH - 14 - 184, -2, toggleHidden)
-  ui.hideButton:SetScript("OnEnter", function(self)
+  ui.hideButton:SetScript("OnEnter", ns.Safely(function(self)
     ns.Widgets.ShowTextTooltip(self, "Hide a character you no longer play. It gets no mail and leaves the list.")
-  end)
-  ui.hideButton:SetScript("OnLeave", ns.Widgets.HideTooltip)
+  end))
+  ui.hideButton:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
   ui.notBank = text(pane, "", "GameFontHighlight", RIGHT, -56)
   ui.notBank:SetWidth(RIGHT_WIDTH)
 
@@ -269,8 +271,8 @@ local function buildAltsTab(pane)
   local function add(widget) bank[#bank + 1] = widget; return widget end
   add(text(pane, "Shortcut for To:", "GameFontHighlightSmall", RIGHT, -52))
   ui.aliasBox = add(inputBox(pane, 90, RIGHT + 100, -48))
-  ui.aliasBox:SetScript("OnEnterPressed", saveAlias)
-  ui.aliasBox:HookScript("OnEditFocusLost", saveAlias)
+  ui.aliasBox:SetScript("OnEnterPressed", ns.Safely(saveAlias))
+  ui.aliasBox:HookScript("OnEditFocusLost", ns.Safely(saveAlias))
   add(text(pane, "e.g. sb", "GameFontDisableSmall", RIGHT + 210, -52))
 
   add(text(pane, "Item types this alt gets", "GameFontNormal", RIGHT, -80))
@@ -475,7 +477,7 @@ local function openItemMenu(row)
       for _, option in ipairs(options) do
         root:CreateRadio(option.label,
           function(value) return value == current end,
-          function(value) chooseFor(entry, value) end,
+          ns.Safely(function(value) chooseFor(entry, value) end),
           option.value)
       end
     end)
@@ -493,10 +495,10 @@ end
 local function buildItemsTab(pane)
   text(pane, "Search", "GameFontHighlightSmall", LEFT, -8)
   ui.searchBox = inputBox(pane, 170, LEFT + 44, -4)
-  ui.searchBox:HookScript("OnTextChanged", function()
+  ui.searchBox:HookScript("OnTextChanged", ns.Safely(function()
     itemOffset = 0
     Config.Refresh()
-  end)
+  end))
   text(pane, "Click an item to choose where it goes.", "GameFontDisableSmall", LEFT + 240, -8)
   text(pane, "Item", "GameFontNormalSmall", LEFT + 30, -32)
   text(pane, "In bags", "GameFontNormalSmall", LEFT + 330, -32)
@@ -523,18 +525,18 @@ local function buildItemsTab(pane)
     row.dest:SetPoint("LEFT", 400, 0)
     row.dest:SetPoint("RIGHT", -4, 0)
     row.dest:SetJustifyH("LEFT")
-    row:SetScript("OnClick", openItemMenu)
-    row:SetScript("OnEnter", function(self)
+    row:SetScript("OnClick", ns.Safely(openItemMenu))
+    row:SetScript("OnEnter", ns.Safely(function(self)
       ns.Widgets.ShowItemTooltip(self, self.entry.itemID, "Click to choose where it goes")
-    end)
-    row:SetScript("OnLeave", ns.Widgets.HideTooltip)
+    end))
+    row:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
     ui.itemRows[i] = row
   end
   pane:EnableMouseWheel(true)
-  pane:SetScript("OnMouseWheel", function(_, delta)
+  pane:SetScript("OnMouseWheel", ns.Safely(function(_, delta)
     itemOffset = math.max(0, itemOffset - delta * 3)
     Config.Refresh()
-  end)
+  end))
 
   local bottom = -48 - ITEM_ROWS * ITEM_ROW_HEIGHT - 6
   ui.emptyItems = text(pane, "No items yet. Hamal lists what is in your bags and what your characters carried before.",
@@ -551,16 +553,19 @@ local function buildItemsTab(pane)
 end
 
 local function refreshItems(db)
+  itemsCache = itemsCache or ns.Items.Collect(db)
   local query = ns.Trim(ui.searchBox:GetText() or ""):lower()
   local list = {}
-  for _, entry in ipairs(ns.Items.Collect(db)) do
+  for _, entry in ipairs(itemsCache) do
     if query == "" or (entry.name and entry.name:lower():find(query, 1, true)) then
       list[#list + 1] = entry
     end
   end
   itemOffset = math.max(0, math.min(itemOffset, #list - ITEM_ROWS))
+  local visible = {}
   for i, row in ipairs(ui.itemRows) do
     local entry = list[i + itemOffset]
+    visible[#visible + 1] = entry
     if entry then
       row.entry = entry
       row.icon:SetTexture(entry.icon)
@@ -580,6 +585,8 @@ local function refreshItems(db)
   ui.prevButton:SetEnabled(itemOffset > 0)
   ui.nextButton:SetEnabled(itemOffset + ITEM_ROWS < #list)
   ui.emptyItems:SetShown(#list == 0)
+  -- Ask the server only for the names of the rows on screen.
+  ns.Items.RequestNames(visible)
 end
 
 -- Options tab -----------------------------------------------------------------------
@@ -641,8 +648,8 @@ function Config.Create()
   frame:SetClampedToScreen(true)
   frame:EnableMouse(true)
   frame:RegisterForDrag("LeftButton")
-  frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
-  frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+  frame:SetScript("OnDragStart", ns.Safely(function(self) self:StartMoving() end))
+  frame:SetScript("OnDragStop", ns.Safely(function(self) self:StopMovingOrSizing() end))
   frame:Hide()
   table.insert(UISpecialFrames, "HamalConfig") -- Esc closes it
 
@@ -663,7 +670,11 @@ function Config.Create()
   buildItemsTab(panes.items)
   buildOptionsTab(panes.options)
 
-  frame:HookScript("OnShow", function() Config.Refresh() end)
+  frame:HookScript("OnShow", ns.Safely(function() Config.Refresh() end))
+  frame:HookScript("OnHide", ns.Safely(function()
+    ns.Listen("GET_ITEM_INFO_RECEIVED", false)
+    itemsCache = nil
+  end))
 
   Config.frame = frame
   ui.tabs = tabButtons
@@ -689,6 +700,13 @@ function Config.ShowTab(key)
   for k, b in pairs(tabButtons) do
     b:SetEnabled(k ~= key) -- the open tab's button is greyed out
   end
+  local itemsOpen = key == "items" and frame:IsShown()
+  -- Item-info events are only worth hearing while the Items tab is on screen.
+  ns.Listen("GET_ITEM_INFO_RECEIVED", itemsOpen)
+  if itemsOpen then
+    ns.Items.RecordSeen(ns.db)
+    itemsCache = nil
+  end
   Config.Refresh()
 end
 
@@ -712,16 +730,21 @@ function Config.Toggle()
   end
 end
 
--- Item names arrive from the server a moment after first being asked for.
+-- Item names arrive from the server a moment after first being asked for; bag changes
+-- while the Items tab is open change counts. Both rebuild the list at most every 0.3 s.
 local pendingRefresh = false
-ns.On("GET_ITEM_INFO_RECEIVED", function()
+local function refreshItemsSoon()
   if pendingRefresh or not frame or not frame:IsShown() or currentTab ~= "items" then return end
   pendingRefresh = true
-  C_Timer.After(0.3, function()
+  ns.After(0.3, function()
     pendingRefresh = false
+    itemsCache = nil
     Config.Refresh()
   end)
-end)
+end
+ns.On("GET_ITEM_INFO_RECEIVED", refreshItemsSoon)
+ns.Listen("GET_ITEM_INFO_RECEIVED", false) -- switched on by ShowTab("items")
+ns.On("BAG_UPDATE_DELAYED", refreshItemsSoon)
 
 -- Entry in the minimap's addon menu (## AddonCompartmentFunc in the TOC).
 function Hamal_OnAddonCompartmentClick()

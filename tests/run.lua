@@ -11,5 +11,6 @@ require("spec_realms")
 require("spec_safety")
 require("spec_robustness")
 require("spec_standalone")
+require("spec_quiet")
 
 os.exit(T.report() and 0 or 1)

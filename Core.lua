@@ -135,6 +135,38 @@ function ns.InitDB()
   return ns.db
 end
 
+-- Errors ----------------------------------------------------------------------
+
+-- A bug in Hamal must never nag the player: it goes to the game's error handler
+-- (silent unless Lua errors are switched on, or caught by BugSack), the player gets
+-- at most one short chat line per session, and /hamal status shows the details.
+-- Outside the game (tests) errors are raised so they can't go unnoticed.
+local inGame = geterrorhandler ~= nil
+ns.errorCount = 0
+
+function ns.ReportError(err)
+  if not inGame then error(err, 0) end
+  ns.errorCount = ns.errorCount + 1
+  ns.lastError = tostring(err)
+  if not ns.errorNoticeShown then
+    ns.errorNoticeShown = true
+    ns.Print("Something went wrong. Type /hamal status for details to report.")
+  end
+  geterrorhandler()(err)
+end
+
+-- Wrap a script handler or callback so an error in it is reported as above.
+function ns.Safely(fn)
+  return function(...)
+    local ok, err = pcall(fn, ...)
+    if not ok then ns.ReportError(err) end
+  end
+end
+
+function ns.After(delay, fn)
+  C_Timer.After(delay, ns.Safely(fn))
+end
+
 -- Events ----------------------------------------------------------------------
 
 local eventFrame = CreateFrame("Frame")
@@ -150,23 +182,22 @@ function ns.On(event, fn)
   list[#list + 1] = fn
 end
 
--- In the game a failing handler is reported through the normal error frame and the
--- other handlers of the event still run. Outside the game (tests) errors propagate.
-local errorHandler = geterrorhandler
+-- Switch delivery of a busy event on or off (its handlers stay registered).
+function ns.Listen(event, enabled)
+  if enabled then
+    pcall(eventFrame.RegisterEvent, eventFrame, event)
+  else
+    eventFrame:UnregisterEvent(event)
+  end
+end
 
+-- No tables or closures per event: some events fire hundreds of times a second.
 eventFrame:SetScript("OnEvent", function(_, event, ...)
   local list = handlers[event]
   if not list then return end
-  if not errorHandler then
-    for i = 1, #list do
-      list[i](...)
-    end
-    return
-  end
-  local count, args = select("#", ...), { ... }
   for i = 1, #list do
-    local fn = list[i]
-    xpcall(function() fn(unpack(args, 1, count)) end, errorHandler())
+    local ok, err = pcall(list[i], ...)
+    if not ok then ns.ReportError(err) end
   end
 end)
 
