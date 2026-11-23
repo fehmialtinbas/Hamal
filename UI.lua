@@ -92,6 +92,7 @@ function UI.Show()
   if not panel then return end
   UI.Place()
   panel:Show()
+  panel:Raise()
   UI.Refresh()
   -- A mailbox addon may hide the game's window a moment after it opens.
   ns.After(0.3, function()
@@ -110,6 +111,10 @@ function UI.Create()
   panel = CreateFrame("Frame", "HamalPanel", UIParent, "BackdropTemplate")
   panel:SetWidth(WIDTH)
   panel:Hide()
+  -- Above ordinary windows (another addon's mailbox included), below popups and menus;
+  -- a click brings it to the front.
+  panel:SetFrameStrata("HIGH")
+  panel:SetToplevel(true)
   panel:SetClampedToScreen(true)
   panel:SetMovable(true)
   panel:EnableMouse(true)

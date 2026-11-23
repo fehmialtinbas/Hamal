@@ -109,6 +109,21 @@ Hamal mails a character only when it is certainly one of yours and on the realm 
 The one thing Hamal cannot know: if you delete a character, its name becomes free for others.
 Use **Forget** on a bank alt before you delete it.
 
+## Getting to Hamal
+
+Several ways in, so no UI suite can take them all away:
+
+- **Minimap button.** Click: settings. Right-click at a mailbox: send all. Drag it around the
+  minimap's edge (round or square); Shift-drag puts it anywhere on screen, which keeps it usable
+  if a UI hides the minimap. It isn't a child of the minimap, so button collectors and minimap
+  replacements leave it alone. `/hamal minimap off|on|reset`, or the Options tab.
+- **Key bindings.** Game menu > Options > Keybindings > AddOns > Hamal: open the settings, and
+  send all (a key press counts as a click).
+- **`/hamal`** and the game's addon menu on the minimap.
+- **The mailbox panel**, which shows with any mailbox window (see below).
+
+The panel and the settings window sit above ordinary windows and come to the front when clicked.
+
 ## With other mailbox addons
 
 UI suites such as DaylightUI (and TradeSkillMaster's mailing) keep the game's mail window open but

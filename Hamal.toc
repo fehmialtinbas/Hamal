@@ -19,4 +19,5 @@ Mailer.lua
 Widgets.lua
 UI.lua
 Config.lua
+MinimapButton.lua
 Commands.lua

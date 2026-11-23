@@ -1,0 +1,8 @@
+<Bindings>
+	<Binding name="HAMAL_SETTINGS" header="HAMAL" category="ADDONS">
+		Hamal_ToggleSettings()
+	</Binding>
+	<Binding name="HAMAL_SENDALL" category="ADDONS">
+		Hamal_SendAll()
+	</Binding>
+</Bindings>

@@ -55,6 +55,22 @@ function Frame:SetShown(on)
 end
 function Frame:IsShown() return self.shown end
 function Frame:HasFocus() return self.focus == true end
+-- Anchors are recorded so tests can see where a frame was put.
+function Frame:SetPoint(...)
+  self.points = self.points or {}
+  table.insert(self.points, { ... })
+end
+function Frame:ClearAllPoints() self.points = {} end
+function Frame:GetPoint(i)
+  local p = self.points and self.points[i or 1]
+  if not p then return nil end
+  local relativeTo = type(p[2]) == "table" and p[2] or nil
+  if relativeTo then return p[1], p[2], p[3], p[4], p[5] end
+  return p[1], self.parent, p[1], p[2], p[3]
+end
+function Frame:SetSize(width, height) self.width, self.height = width, height end
+function Frame:GetWidth() return self.width end
+function Frame:GetHeight() return self.height end
 -- Alpha and scale multiply down the parent chain, as in the game.
 function Frame:SetAlpha(alpha) self.alpha = alpha end
 function Frame:SetScale(scale) self.scale = scale end
@@ -343,6 +359,12 @@ function World:installGlobals()
 
   _G.UIParent = Mock.newFrame("Frame", "UIParent")
   _G.GameTooltip = Mock.newFrame("GameTooltip", "GameTooltip", _G.UIParent)
+  -- A 140 x 140 minimap centred at (1800, 900), and the cursor a test can move.
+  _G.Minimap = Mock.newFrame("Frame", "Minimap", _G.UIParent)
+  _G.Minimap:SetSize(140, 140)
+  rawset(_G.Minimap, "GetCenter", function() return 1800, 900 end)
+  _G.GetCursorPosition = function() return w.cursorX or 0, w.cursorY or 0 end
+  _G.GetMinimapShape = w.minimapShape and function() return w.minimapShape end or nil
   _G.MailFrame = Mock.newFrame("Frame", "MailFrame")
   _G.SendMailFrame = Mock.newFrame("Frame", "SendMailFrame", _G.MailFrame)
   _G.SendMailNameEditBox = Mock.newFrame("EditBox", "SendMailNameEditBox", _G.SendMailFrame)

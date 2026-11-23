@@ -111,6 +111,7 @@ function handlers.help()
   ns.Print("  /hamal auto on|off - fill the mail when you type a bank alt's name")
   ns.Print("  /hamal chain on|off - send every batch with one click")
   ns.Print("  /hamal remove Name - forget a bank alt")
+  ns.Print("  /hamal minimap [on|off|reset] - the minimap button")
 end
 
 -- Only characters of this account that Hamal has seen log in can become bank alts:
@@ -281,6 +282,43 @@ function Commands.Run(msg)
   handler(args or "")
 end
 
+function handlers.minimap(args)
+  local word = ns.Trim(args or ""):lower()
+  if word == "reset" then
+    ns.MinimapButton.Reset()
+    return ns.Print("Minimap button is back by the minimap.")
+  end
+  local shown
+  if word == "on" or word == "show" then
+    shown = true
+  elseif word == "off" or word == "hide" then
+    shown = false
+  else
+    shown = ns.db.minimap and ns.db.minimap.hide or false
+  end
+  ns.MinimapButton.SetShown(shown)
+  ns.Print("Minimap button: %s", shown and "shown" or "hidden (/hamal minimap to show it again)")
+end
+
 SLASH_HAMAL1 = "/hamal"
 SLASH_HAMAL2 = "/ham"
 SlashCmdList.HAMAL = ns.Safely(Commands.Run)
+
+-- Key bindings (Bindings.xml), listed under AddOns > Hamal in the game's key bindings.
+-- A key press counts as a click, so "Send all" from a key is as good as the button.
+BINDING_HEADER_HAMAL = "Hamal"
+BINDING_NAME_HAMAL_SETTINGS = "Open or close Hamal's settings"
+BINDING_NAME_HAMAL_SENDALL = "Send everything to your bank alts (at a mailbox)"
+
+Hamal_ToggleSettings = ns.Safely(function()
+  if ns.db then ns.Config.Toggle() end
+end)
+
+Hamal_SendAll = ns.Safely(function()
+  if not ns.db then return end
+  if ns.Mailer.IsMailboxOpen() then
+    ns.Mailer.SendAll(true)
+  else
+    ns.Print("Open a mailbox first.")
+  end
+end)

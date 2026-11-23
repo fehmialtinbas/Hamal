@@ -666,8 +666,16 @@ local function buildOptionsTab(pane)
     "GameFontDisableSmall", LEFT + CHECK + 4, -86)
   ui.stackCheck = checkBox(pane, LEFT, -108, labelWidth, option("stackFirst"))
   ui.stackCheck.label:SetText("Combine partial stacks of outgoing items first (fewer mails, less postage)")
+  ui.minimapCheck = checkBox(pane, LEFT, -136, labelWidth - 120, function(self)
+    ns.MinimapButton.SetShown(self:GetChecked())
+  end)
+  ui.minimapCheck.label:SetText("Show the minimap button")
+  ui.minimapReset = button(pane, "Reset position", 110, WIDTH - LEFT - 110, -136, function()
+    ns.MinimapButton.Reset()
+    Config.Refresh()
+  end)
 
-  local excludeY = -166
+  local excludeY = -194
   text(pane, "Never send (any bank alt)", "GameFontNormal", LEFT, excludeY + 18)
   ui.excludeDrop = dropZone(pane, LEFT, excludeY, "Drag an item here to keep it in your bags.", addExclude)
   ui.excludeMore = text(pane, "", "GameFontDisableSmall", LEFT, excludeY - 2 * (ICON + ICON_GAP))
@@ -682,6 +690,7 @@ local function refreshOptions(db)
   ui.chainCheck:SetChecked(db.options.chain)
   ui.openCheck:SetChecked(db.options.autoSendOnOpen)
   ui.stackCheck:SetChecked(db.options.stackFirst)
+  ui.minimapCheck:SetChecked(not (db.minimap and db.minimap.hide))
   layoutIcons(panes.options, ui.excludeButtons, ns.SortedIDs(db.exclude), LEFT + ICON + 8, ui.excludeY,
     removeExclude, ui.excludeMore)
 end
@@ -693,8 +702,11 @@ function Config.Create()
   frame = CreateFrame("Frame", "HamalConfig", UIParent, "BasicFrameTemplateWithInset")
   frame:SetSize(WIDTH, HEIGHT)
   frame:SetPoint("CENTER")
-  -- Below DIALOG, so the game's menus and confirmation popups always open on top of it.
+  -- Below DIALOG, so the game's menus and confirmation popups always open on top of it;
+  -- a click brings it in front of other windows.
   frame:SetFrameStrata("HIGH")
+  frame:SetToplevel(true)
+  frame:HookScript("OnShow", function(self) self:Raise() end)
   frame:SetMovable(true)
   frame:SetClampedToScreen(true)
   frame:EnableMouse(true)

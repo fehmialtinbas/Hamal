@@ -3,8 +3,13 @@ max_line_length = false
 exclude_files = { "tests/**", ".release/**" }
 
 globals = {
+  "BINDING_HEADER_HAMAL",
+  "BINDING_NAME_HAMAL_SENDALL",
+  "BINDING_NAME_HAMAL_SETTINGS",
   "HamalDB",
   "Hamal_OnAddonCompartmentClick",
+  "Hamal_SendAll",
+  "Hamal_ToggleSettings",
   "SlashCmdList",
   "SLASH_HAMAL1",
   "SLASH_HAMAL2",
@@ -15,6 +20,9 @@ read_globals = {
   "ATTACHMENTS_MAX_SEND",
   "C_AddOns",
   "C_GameRules",
+  "GetCursorPosition",
+  "GetMinimapShape",
+  "Minimap",
   "GetAddOnMetadata",
   "geterrorhandler",
   "GetNormalizedRealmName",
