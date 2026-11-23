@@ -166,7 +166,7 @@ function handlers.list()
     end
     table.sort(aliases)
     local aliasText = #aliases > 0 and (" (alias: " .. table.concat(aliases, ", ") .. ")") or ""
-    ns.Print("%s%s", mule.name, aliasText)
+    ns.Print("%s%s%s", mule.name, aliasText, mule.disabled and " [off]" or "")
     ns.Print("  types: %s", #categories > 0 and table.concat(categories, ", ") or "none")
     if #items > 0 then ns.Print("  items: %s", table.concat(items, " ")) end
   end

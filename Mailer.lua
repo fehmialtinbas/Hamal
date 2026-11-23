@@ -113,7 +113,7 @@ function Mailer.Start(key)
     end
     Mailer.Cancel()
   end
-  if ns.NormalizeName(UnitName("player")) == key then
+  if ns.NormalizeName(ns.PlayerName()) == key then
     ns.Print("You are logged in as %s. Use another character to fill this bank.", mule.name)
     return false
   end
@@ -208,8 +208,57 @@ function Mailer.Skip(item, forever)
   refresh()
 end
 
+-- Sending to every bank alt ------------------------------------------------------
+
+-- Active bank alts (not this character) with something waiting in the bags.
+function Mailer.PendingAlts()
+  local db = ns.db
+  local me = ns.NormalizeName(ns.PlayerName())
+  local counts = ns.Scanner.CountAll(db)
+  local keys, stacks = {}, 0
+  for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
+    local n = counts[key] or 0
+    if key ~= me and n > 0 then
+      keys[#keys + 1] = key
+      stacks = stacks + n
+    end
+  end
+  return keys, stacks
+end
+
+-- Fill and send the next bank alt of the run. `byClick` means a real click started
+-- this, so the first SendMail is allowed even when chaining is off.
+function Mailer.NextInRun(byClick)
+  local run = Mailer.run
+  if not run then return false end
+  repeat
+    run.index = run.index + 1
+    local key = run.keys[run.index]
+    if not key then
+      Mailer.run = nil
+      if run.index > 2 then ns.Print("All bank alts are done.") end
+      refresh()
+      return false
+    end
+  until Mailer.Start(key)
+  if byClick or ns.db.options.chain then Mailer.Send() end
+  return true
+end
+
+function Mailer.SendAll(byClick, quiet)
+  if Mailer.session or Mailer.run or not Mailer.IsMailboxOpen() then return false end
+  local keys = Mailer.PendingAlts()
+  if #keys == 0 then
+    if not quiet then ns.Print("Nothing in your bags goes to a bank alt.") end
+    return false
+  end
+  Mailer.run = { keys = keys, index = 0 }
+  return Mailer.NextInRun(byClick)
+end
+
 function Mailer.Cancel()
   local s = Mailer.session
+  Mailer.run = nil
   if not s then return end
   Mailer.session = nil
   if not s.sending and Mailer.IsMailboxOpen() then
@@ -229,6 +278,12 @@ function Mailer.Finish()
     ns.Print("Sent %d stack(s) to %s in %d mail(s).", s.sent, s.name, s.mails)
   end
   refresh()
+  if Mailer.run then
+    -- On to the next bank alt once the form has been reset.
+    C_Timer.After(REFILL_DELAY, function()
+      if Mailer.run and not Mailer.session and Mailer.IsMailboxOpen() then Mailer.NextInRun(false) end
+    end)
+  end
 end
 
 -- Every SendMail call goes through here, ours or the Send button of the default UI,
@@ -344,6 +399,7 @@ end
 
 local function onMailboxClosed()
   local s = Mailer.session
+  Mailer.run = nil
   if not s then return end
   Mailer.session = nil
   local left = #s.queue + countKeys(s.attached)
@@ -371,7 +427,16 @@ ns.OnInit(function()
   hooksecurefunc("SendMail", onSendMail)
 end)
 
-ns.On("MAIL_SHOW", Mailer.HookMailFrame)
+local OPEN_DELAY = 0.5
+
+ns.On("MAIL_SHOW", function()
+  Mailer.HookMailFrame()
+  if ns.db and ns.db.options.autoSendOnOpen then
+    C_Timer.After(OPEN_DELAY, function()
+      if Mailer.IsMailboxOpen() and not Mailer.session then Mailer.SendAll(false, true) end
+    end)
+  end
+end)
 ns.On("MAIL_SEND_SUCCESS", onSendSuccess)
 ns.On("MAIL_FAILED", onSendFailed)
 ns.On("ADDON_ACTION_BLOCKED", onBlocked)

@@ -14,15 +14,31 @@ Built for **World of Warcraft: Forever** (1.60.1, interface 16001).
 
 ## Setup (in game)
 
-Type `/hamal` (or use the minimap addon menu, or **Settings** in the mailbox panel) to open the settings window:
+Type `/hamal` (or use the minimap addon menu, or **Settings** in the mailbox panel) to open the settings window.
 
-- **Bank alts** (left): add each bank alt by its full name. You can have as many as you like.
-- **Item types this alt gets**: tick cloth for one alt, herbs and leather for another, and so on.
+**Bank alts tab**
+
+- Your characters are listed on the left. Each one appears after you log in on it once; if you use
+  Bagnon, the characters it knows are imported right away.
+- Tick the ones that are bank alts. You can have as many as you like.
+- Select a bank alt and tick the **item types** it gets: cloth for one, herbs and leather for another, and so on.
   A grey name next to a type shows which other alt already takes it.
 - **Always send these items**: drag a single item from your bags onto the slot.
 - **Shortcut for To:**: a one-word alias, e.g. `vk` for Vault Keeper.
-- **Never send (any bank alt)**: drag items here to keep them in your bags.
-- **Options**: fill the mail when you type a name; send every batch with one click.
+- Unticking a bank alt keeps its rules for later; **Forget** deletes them.
+- A bank alt on another account can be added by name.
+
+**Items tab**
+
+Every item in your bags, every item your characters carried before, and every item with a rule,
+with where it goes right now. Click one to choose: *Follow item types*, *Always send to (bank alt)*, or *Never send*.
+
+**Options tab**
+
+- Fill the mail when you type a bank alt's name.
+- Send every batch with one click.
+- Send to every bank alt as soon as you open a mailbox (off by default).
+- The never-send list.
 
 Everything can also be done with slash commands (see below), e.g.:
 
@@ -36,6 +52,11 @@ Names can be shortened in commands as long as they stay unique (`vault` instead 
 With a single bank alt you can leave the name out.
 
 ## At the mailbox
+
+**Everything at once:** press **Send all** at the top of the Hamal panel. Hamal mails each bank alt
+its items, one after another. With "send as soon as I open a mailbox" on, this happens by itself.
+
+**One bank alt, with a final check:**
 
 1. Open the **Send Mail** tab. The Hamal panel next to it lists your bank alts and how many stacks are waiting for each.
 2. Type a bank alt's full name or alias in **To:**, or click its button. Hamal attaches the first 12 stacks

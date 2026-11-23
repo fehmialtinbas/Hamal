@@ -13,7 +13,8 @@ local F = {
 }
 
 -- A fresh fake client with the addon loaded and a few known items.
-function F.setup()
+-- `prepare(w)` runs before the addon loads (e.g. to give Bagnon data or bag items).
+function F.setup(prepare)
   local w = Mock.new()
   w:DefineItem(F.LINEN, "Linen Cloth", 7, 5)
   w:DefineItem(F.PEACEBLOOM, "Peacebloom", 7, 9)
@@ -24,6 +25,7 @@ function F.setup()
   w:DefineItem(F.GREY_SHIRT, "Grey Shirt", 4, 1, 0)
   w:DefineItem(F.QUEST_ITEM, "Quest Thing", 12, 0)
   w:DefineItem(F.HEALING_POTION, "Minor Healing Potion", 0, 1)
+  if prepare then prepare(w) end
   local ns = Mock.loadAddon(w)
   return w, ns
 end

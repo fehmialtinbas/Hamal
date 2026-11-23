@@ -13,6 +13,21 @@ function Mules.SortedKeys(db)
   return keys
 end
 
+-- Bank alts that are switched on. An unticked bank alt keeps its rules but gets nothing.
+function Mules.ActiveKeys(db)
+  local keys = {}
+  for key, mule in pairs(db.mules) do
+    if not mule.disabled then keys[#keys + 1] = key end
+  end
+  table.sort(keys)
+  return keys
+end
+
+function Mules.IsActive(db, key)
+  local mule = key and db.mules[key]
+  return mule ~= nil and not mule.disabled
+end
+
 function Mules.Add(db, name)
   local key = ns.NormalizeName(name)
   if not key then return nil, "Give the bank alt's full name, e.g. /hamal add Vault Keeper" end
@@ -35,9 +50,9 @@ end
 function Mules.FindExact(db, text)
   local norm = ns.NormalizeName(text)
   if not norm then return nil end
-  if db.mules[norm] then return norm end
+  if Mules.IsActive(db, norm) then return norm end
   local target = db.aliases[norm]
-  if target and db.mules[target] then return target end
+  if Mules.IsActive(db, target) then return target end
   return nil
 end
 

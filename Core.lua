@@ -3,6 +3,26 @@ local addonName, ns = ...
 
 ns.name = addonName
 
+-- WoW: Forever runs as its own project (WOW_PROJECT_ID 18). Its characters have a
+-- first and a last name, and UnitFullName returns the last name instead of a realm.
+ns.IsForever = WOW_PROJECT_ID == 18
+
+-- "Vault Keeper" on Forever, "Vault" elsewhere.
+function ns.PlayerName()
+  if ns.IsForever and UnitFullName then
+    local name, surname = UnitFullName("player")
+    if name and surname and surname ~= "" then return name .. " " .. surname end
+    return name
+  end
+  return (UnitName("player"))
+end
+
+-- Same realm key Bagnon uses, so its character list can be imported as is.
+function ns.RealmKey()
+  if ns.IsForever then return "forever" end
+  return (GetNormalizedRealmName and GetNormalizedRealmName()) or GetRealmName()
+end
+
 local PREFIX = "|cffe6b85cHamal|r: "
 
 function ns.Print(fmt, ...)
@@ -77,9 +97,14 @@ local DEFAULTS = {
   aliases = {},
   -- [itemID] = true: never mailed by Hamal
   exclude = {},
+  -- [realm key][full name] = { class, level, faction }: this account's characters
+  characters = {},
+  -- [itemID] = true: mailable items any character has carried (for the Items tab)
+  seen = {},
   options = {
-    autoAttach = true, -- fill the mail as soon as a bank alt's name is typed in "To:"
-    chain = true,      -- after one mail goes out, send the next batch without another click
+    autoAttach = true,      -- fill the mail as soon as a bank alt's name is typed in "To:"
+    chain = true,           -- after one mail goes out, send the next batch without another click
+    autoSendOnOpen = false, -- send to every bank alt as soon as a mailbox opens
   },
 }
 

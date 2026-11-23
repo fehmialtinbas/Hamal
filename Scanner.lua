@@ -16,7 +16,7 @@ local function bagList()
   return bags
 end
 
-local function itemClass(itemID)
+function Scanner.ItemClass(itemID)
   local getInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
   if not getInstant then return nil, nil end
   local _, _, _, _, _, classID, subclassID = getInstant(itemID)
@@ -26,7 +26,7 @@ end
 function Scanner.ReadSlot(bag, slot)
   local info = C_Container.GetContainerItemInfo(bag, slot)
   if not info or not info.itemID then return nil end
-  local classID, subclassID = itemClass(info.itemID)
+  local classID, subclassID = Scanner.ItemClass(info.itemID)
   return {
     bag = bag,
     slot = slot,
@@ -43,7 +43,7 @@ function Scanner.ReadSlot(bag, slot)
   }
 end
 
-local function eachItem(fn)
+function Scanner.EachItem(fn)
   for _, bag in ipairs(bagList()) do
     local slots = C_Container.GetContainerNumSlots(bag) or 0
     for slot = 1, slots do
@@ -65,9 +65,9 @@ end
 
 -- Every bag item that belongs to `targetKey`, sorted so similar items share a mail.
 function Scanner.Collect(db, targetKey)
-  local keys = ns.Mules.SortedKeys(db)
+  local keys = ns.Mules.ActiveKeys(db)
   local out = {}
-  eachItem(function(item)
+  Scanner.EachItem(function(item)
     local key, reason = ns.Rules.Resolve(item, db, keys)
     if key == targetKey then
       item.reason = reason
@@ -78,14 +78,14 @@ function Scanner.Collect(db, targetKey)
   return out
 end
 
--- Stack counts for every bank alt in one pass (for the mailbox panel).
+-- Stack counts for every active bank alt in one pass (for the mailbox panel).
 function Scanner.CountAll(db)
-  local keys = ns.Mules.SortedKeys(db)
+  local keys = ns.Mules.ActiveKeys(db)
   local counts = {}
   for _, key in ipairs(keys) do
     counts[key] = 0
   end
-  eachItem(function(item)
+  Scanner.EachItem(function(item)
     local key = ns.Rules.Resolve(item, db, keys)
     if key then counts[key] = counts[key] + 1 end
   end)

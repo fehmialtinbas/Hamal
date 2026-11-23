@@ -13,7 +13,7 @@ local ICON_GAP = 4
 local ICONS_PER_ROW = 6
 local MAX_ICONS = 36
 
-local panel, status, sendButton, settingsButton, moreText, hintText
+local panel, status, sendButton, sendAllButton, settingsButton, moreText, hintText
 local muleButtons = {}
 local itemButtons = {}
 
@@ -89,6 +89,10 @@ function UI.Create()
   sendButton:SetHeight(BUTTON_HEIGHT)
   sendButton:SetScript("OnClick", function() ns.Mailer.Send() end)
 
+  sendAllButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+  sendAllButton:SetHeight(BUTTON_HEIGHT)
+  sendAllButton:SetScript("OnClick", function() ns.Mailer.SendAll(true) end)
+
   settingsButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   settingsButton:SetHeight(BUTTON_HEIGHT)
   settingsButton:SetText("Settings")
@@ -100,6 +104,7 @@ function UI.Create()
   panel:SetScript("OnShow", function() UI.Refresh() end)
 
   UI.panel, UI.status, UI.sendButton, UI.settingsButton = panel, status, sendButton, settingsButton
+  UI.sendAllButton = sendAllButton
   UI.muleButtons, UI.itemButtons = muleButtons, itemButtons
 end
 
@@ -160,12 +165,22 @@ end
 function UI.Refresh()
   if not panel or not panel:IsVisible() or not ns.db then return end
   local db = ns.db
-  local keys = ns.Mules.SortedKeys(db)
+  local keys = ns.Mules.ActiveKeys(db)
   local counts = ns.Scanner.CountAll(db)
   local session = ns.Mailer.session
   local busy = session and session.sending
 
   local y = -PAD - 20
+  local pendingAlts, pendingStacks = ns.Mailer.PendingAlts()
+  if not session and not ns.Mailer.run and #pendingAlts > 0 then
+    fullWidth(sendAllButton, y)
+    sendAllButton:SetText(("Send all: %d stack(s) to %d alt(s)"):format(pendingStacks, #pendingAlts))
+    sendAllButton:Show()
+    y = y - BUTTON_HEIGHT - 8
+  else
+    sendAllButton:Hide()
+  end
+
   for i, key in ipairs(keys) do
     local button = getMuleButton(i)
     local n = counts[key] or 0

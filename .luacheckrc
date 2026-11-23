@@ -13,6 +13,17 @@ globals = {
 
 read_globals = {
   "ATTACHMENTS_MAX_SEND",
+  "BrotherBags",
+  "GetNormalizedRealmName",
+  "GetRealmName",
+  "ITEM_QUALITY_COLORS",
+  "MenuUtil",
+  "RAID_CLASS_COLORS",
+  "UnitClass",
+  "UnitFactionGroup",
+  "UnitFullName",
+  "UnitLevel",
+  "WOW_PROJECT_ID",
   "GameTooltip",
   "GetCursorInfo",
   "IsShiftKeyDown",

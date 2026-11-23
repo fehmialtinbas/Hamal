@@ -4,6 +4,7 @@ local Rules = {}
 ns.Rules = Rules
 
 local QUEST_ITEM_CLASS = 12
+Rules.QUEST_ITEM_CLASS = QUEST_ITEM_CLASS
 
 -- Never mailed, whatever the rules say: things a character needs on itself.
 Rules.ALWAYS_KEEP = {
@@ -40,7 +41,7 @@ end
 --    never changes from one scan to the next.
 function Rules.Resolve(item, db, keys)
   if not Rules.IsMailable(item, db) then return nil end
-  keys = keys or ns.Mules.SortedKeys(db)
+  keys = keys or ns.Mules.ActiveKeys(db)
   for _, key in ipairs(keys) do
     if db.mules[key].items[item.itemID] then return key, "item" end
   end

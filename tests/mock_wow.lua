@@ -101,11 +101,11 @@ function Mock.new()
   local w = setmetatable({
     frames = {}, timers = {}, bags = {}, bagSize = {}, items = {}, mail = {}, sent = {}, printed = {},
     cursor = nil, money = 100000, hardware = false, requireHardware = false, pending = false,
-    failNext = false, playerName = "Main Character",
+    failNext = false, playerName = "Main Character", playerClass = "ROGUE", playerLevel = 22,
+    playerFaction = "Horde",
   }, World)
   Mock.world = w
   for bag = 0, 4 do w.bagSize[bag] = 16 end
-  w:installGlobals()
   return w
 end
 
@@ -115,7 +115,30 @@ function World:installGlobals()
   _G.CreateFrame = function(objType, name, parent) return Mock.newFrame(objType, name, parent) end
   _G.DEFAULT_CHAT_FRAME = { AddMessage = function(_, msg) table.insert(w.printed, msg) end }
   _G.C_Timer = { After = function(_, fn) table.insert(w.timers, fn) end }
-  _G.UnitName = function() return w.playerName end
+  -- Forever: characters have a first and a last name; UnitFullName returns both.
+  _G.WOW_PROJECT_ID = 18
+  _G.UnitName = function() return (w.playerName:match("^(%S+)")) end
+  _G.UnitFullName = function() return w.playerName:match("^(%S+)%s*(.-)$") end
+  _G.UnitClass = function() return "Rogue", w.playerClass end
+  _G.UnitLevel = function() return w.playerLevel end
+  _G.UnitFactionGroup = function() return w.playerFaction end
+  _G.GetRealmName = function() return "Forever" end
+  _G.BrotherBags = w.brotherBags
+  _G.RAID_CLASS_COLORS = {}
+  _G.ITEM_QUALITY_COLORS = {}
+  _G.MenuUtil = {
+    CreateContextMenu = function(owner, generator)
+      local entries = {}
+      local root = {}
+      function root.CreateTitle(_, label) entries[#entries + 1] = { title = label } end
+      function root.CreateDivider() end
+      function root.CreateRadio(_, label, isSelected, setSelected, data)
+        entries[#entries + 1] = { text = label, selected = isSelected(data), pick = function() setSelected(data) end }
+      end
+      generator(owner, root)
+      w.menu = entries
+    end,
+  }
   _G.NUM_BAG_SLOTS = 4
   _G.ATTACHMENTS_MAX_SEND = 12
   _G.Enum = { BagIndex = { ReagentBag = 5 } }
@@ -137,10 +160,11 @@ function World:installGlobals()
   end
 
   _G.C_Item = {
+    RequestLoadItemDataByID = function() end,
     GetItemInfoInstant = function(id)
       local d = w.items[id]
       if not d then return nil end
-      return id, nil, nil, nil, nil, d.classID, d.subclassID
+      return id, nil, nil, nil, 100000 + id, d.classID, d.subclassID
     end,
     GetItemInfo = function(id)
       local d = w.items[id]
@@ -386,8 +410,21 @@ function World:Printed(pattern)
   return false
 end
 
--- Loads the addon files in TOC order, like the client does, and fires ADDON_LOADED.
+-- The player picks the menu entry whose text contains `label`.
+function World:PickMenu(label)
+  for _, entry in ipairs(self.menu or {}) do
+    if entry.pick and entry.text:find(label, 1, true) then
+      self.menu = nil
+      entry.pick()
+      return
+    end
+  end
+  error("no menu entry " .. label)
+end
+
+-- Loads the addon files in TOC order, like the client does, then logs in.
 function Mock.loadAddon(world)
+  world:installGlobals()
   local ns = {}
   for line in io.lines("Hamal.toc") do
     line = line:gsub("\r", "")
@@ -397,6 +434,7 @@ function Mock.loadAddon(world)
     end
   end
   world:Fire("ADDON_LOADED", "Hamal")
+  world:Fire("PLAYER_LOGIN")
   return ns
 end
 

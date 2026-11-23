@@ -6,12 +6,15 @@
 ## SavedVariables: HamalDB
 ## IconTexture: Interface\Icons\INV_Letter_15
 ## AddonCompartmentFunc: Hamal_OnAddonCompartmentClick
+## OptionalDeps: BagBrother
 
 Core.lua
 Categories.lua
 Mules.lua
 Rules.lua
 Scanner.lua
+Characters.lua
+Items.lua
 Mailer.lua
 Widgets.lua
 UI.lua
