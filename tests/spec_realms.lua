@@ -6,7 +6,9 @@ local F = require("fixtures")
 -- Main Character (logged in now) is on PvP.
 local function twoRealms(w)
   local function char(class, level, realm)
-    return { class = class, level = level, faction = "Horde", realm = realm }
+    -- Region 3 (Europe); the fake PvP realm is number 1, the PvE realm number 2.
+    return { class = class, level = level, faction = "Horde", realm = realm, region = 3,
+      realmID = realm == "PvP" and 1 or 2 }
   end
   w.savedDB = {
     characters = {

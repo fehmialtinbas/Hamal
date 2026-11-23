@@ -129,7 +129,7 @@ function Mock.new()
     frames = {}, timers = {}, bags = {}, bagSize = {}, items = {}, mail = {}, sent = {}, printed = {},
     cursor = nil, money = 100000, hardware = false, requireHardware = false, pending = false,
     failNext = false, playerName = "Main Character", playerClass = "ROGUE", playerLevel = 22,
-    playerFaction = "Horde", realmName = "PvP", gameRules = { [213] = true },
+    playerFaction = "Horde", realmName = "PvP", gameRules = { [213] = true }, region = 3, realmID = 1,
   }, World)
   Mock.world = w
   for bag = 0, 4 do w.bagSize[bag] = 16 end
@@ -151,6 +151,8 @@ function World:installGlobals()
   _G.UnitFactionGroup = function() return w.playerFaction end
   -- One realm per ruleset, named after it (as AceDB profile keys show: "Name - PvP").
   _G.GetRealmName = function() return w.realmName end
+  _G.GetCurrentRegion = function() return w.region end
+  _G.GetRealmID = function() return w.realmID end
   _G.C_GameRules = { IsGameRuleActive = function(rule) return w.gameRules[rule] == true end }
   _G.BrotherBags = w.brotherBags
   _G.RAID_CLASS_COLORS = {}

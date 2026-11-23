@@ -59,8 +59,10 @@ function handlers.status()
   local db = ns.db
   local onOff = function(value) return value and "on" or "off" end
   ns.Print("status (version %s):", tostring(ns.Version()))
-  ns.Print("  you: %s | realm: %s | ruleset: %s | Forever client: %s", tostring(ns.PlayerName()),
-    tostring(ns.Characters.CurrentRealm()), tostring(ns.Characters.Ruleset()), ns.IsForever and "yes" or "no")
+  local region, realmID = ns.Characters.Home()
+  ns.Print("  you: %s | realm: %s | ruleset: %s | Forever client: %s | region: %s | realm id: %s",
+    tostring(ns.PlayerName()), tostring(ns.Characters.CurrentRealm()), tostring(ns.Characters.Ruleset()),
+    ns.IsForever and "yes" or "no", tostring(region), tostring(realmID))
   ns.Print("  mailbox open: %s | items per mail: %d | mail frame found: %s",
     ns.Mailer.IsMailboxOpen() and "yes" or "no", ATTACHMENTS_MAX_SEND or 12,
     (MailFrame and SendMailNameEditBox) and "yes" or "no")

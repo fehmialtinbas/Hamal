@@ -6,7 +6,7 @@ local F = require("fixtures")
 -- Main Character (logged in now) registers itself.
 local function withAccount(w)
   local function char(class, level, faction)
-    return { class = class, level = level, faction = faction, realm = "PvP" }
+    return { class = class, level = level, faction = faction, realm = "PvP", region = 3, realmID = 1 }
   end
   w.savedDB = {
     characters = {

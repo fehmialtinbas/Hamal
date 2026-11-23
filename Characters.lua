@@ -30,6 +30,17 @@ function Characters.CurrentRealm()
   return nil
 end
 
+-- The game's region and realm number for where you are now. Either is nil when the
+-- client doesn't have the function or doesn't know yet.
+function Characters.Home()
+  local function value(fn)
+    local v = fn and fn()
+    if v == nil or v == 0 or v == "" then return nil end
+    return v
+  end
+  return value(GetCurrentRegion), value(GetRealmID)
+end
+
 function Characters.Ruleset()
   local rules = C_GameRules
   local gameRule = Enum and Enum.GameRule
@@ -61,8 +72,15 @@ function Characters.Place(db, key)
   if info.hidden then return "hidden" end
   local here = Characters.CurrentRealm()
   if not known(info.realm) or not known(here) then return "unknown" end
-  if info.realm == here then return "here" end
-  return "other"
+  if info.realm ~= here then return "other" end
+  -- On Forever the realm label is the ruleset, which can't tell two regions (one
+  -- WTF folder used on EU and US) or two realms of one ruleset apart. So the game's
+  -- region and realm number must match as well; a character saved without them
+  -- counts as not confirmed until it logs in again.
+  local region, realmID = Characters.Home()
+  if region and info.region ~= region then return info.region and "other" or "unknown" end
+  if realmID and info.realmID ~= realmID then return info.realmID and "other" or "unknown" end
+  return "here"
 end
 
 -- The safety rule: Hamal mails a character only when it is certainly yours and on
@@ -90,6 +108,7 @@ function Characters.Register(db)
   entry.faction = UnitFactionGroup("player")
   entry.realm = Characters.CurrentRealm()
   entry.ruleset = Characters.Ruleset()
+  entry.region, entry.realmID = Characters.Home()
   entry.imported = nil
   entry.hidden = nil -- playing it again
   list[name] = entry

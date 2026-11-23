@@ -25,7 +25,7 @@ at the mailbox (a screenshot is fine) and any Lua error the game showed.
 Every change has to keep these four. A pull request that breaks one can't be merged.
 
 1. **Items only reach your own characters.** Hamal mails only this account's characters that it
-   has seen on the same realm (`Characters.CanMail`, checked again by `Mailer.VerifiedRecipient`
+   has seen on the same realm and region (`Characters.CanMail`, checked again by `Mailer.VerifiedRecipient`
    right before a mail goes out). There is no way to type in someone else's name, and nothing is
    mailed while the realm is unknown.
 2. **Blizzard's rules.** Official API only. When the game blocks something, Hamal falls back to a

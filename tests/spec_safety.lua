@@ -44,6 +44,61 @@ T.describe("Safety", function()
     T.eq(#w.sent, 0)
   end)
 
+  T.it("never mails the same name in another region", function()
+    -- One WTF folder used on EU and US: both have a PvP realm, so the realm label
+    -- alone would call them the same. The region tells them apart.
+    local w, ns = F.setup()
+    local key = F.addMule(ns, "Twin Name")
+    ns.Mules.ToggleCategory(ns.db, key, "cloth")
+    w.region = 1 -- you are now on the US PvP realm; Twin Name logged in on the EU one
+    w:Fill(F.LINEN, 3, 20)
+    w:OpenMailbox()
+    T.eq(ns.Characters.Place(ns.db, key), "other")
+    T.eq(ns.Mailer.Start(key), false)
+    T.truthy(w:Printed("Twin Name is on another realm or in another region"), "says why")
+    w:Click(ns.UI.sendAllButton)
+    w:Flush()
+    T.eq(#w.sent, 0)
+  end)
+
+  T.it("never mails the same name on a second realm of the same ruleset", function()
+    local w, ns = F.setup()
+    local key = F.addMule(ns, "Twin Name")
+    ns.Mules.ToggleCategory(ns.db, key, "cloth")
+    w.realmID = 2 -- another PvP realm in the same region
+    w:Fill(F.LINEN, 3, 20)
+    w:OpenMailbox()
+    T.eq(ns.Mailer.VerifiedRecipient(key), nil)
+    w:Click(ns.UI.sendAllButton)
+    w:Flush()
+    T.eq(#w.sent, 0)
+  end)
+
+  T.it("waits for a login on characters saved without a region", function()
+    local w, ns = F.setup()
+    local key = F.addMule(ns, "Old Entry")
+    ns.Mules.ToggleCategory(ns.db, key, "cloth")
+    local info = ns.db.characters.forever["Old Entry"]
+    info.region, info.realmID = nil, nil -- saved by an earlier Hamal
+    w:Fill(F.LINEN, 3, 20)
+    w:OpenMailbox()
+    T.eq(ns.Mailer.Start(key), false)
+    T.truthy(w:Printed("Log in on Old Entry once"), "says what to do")
+    T.eq(#w.sent, 0)
+  end)
+
+  T.it("still compares the realm on a client without region functions", function()
+    local w, ns = F.setup()
+    _G.GetCurrentRegion, _G.GetRealmID = nil, nil
+    local key = F.addMule(ns, "Vault Keeper")
+    ns.Mules.ToggleCategory(ns.db, key, "cloth")
+    T.eq(ns.Characters.Place(ns.db, key), "here", "same realm label")
+    ns.db.characters.forever["Vault Keeper"].realm = "PvE"
+    T.eq(ns.Characters.Place(ns.db, key), "other", "other realm label")
+    T.eq(ns.Mailer.VerifiedRecipient(key), nil)
+    T.eq(#w.sent, 0)
+  end)
+
   T.it("refuses to add a name that is not one of your characters", function()
     local w, ns = F.setup()
     SlashCmdList.HAMAL("add Total Stranger")

@@ -37,13 +37,22 @@ function F.own(ns, name)
   local chars = ns.db.characters[ns.RealmKey()]
   chars[name] = chars[name] or { class = "WARRIOR", level = 1, faction = "Horde" }
   chars[name].realm = Mock.world.realmName
+  chars[name].region, chars[name].realmID = Mock.world.region, Mock.world.realmID
   return name
+end
+
+-- Marks a saved character entry as seen by Hamal at a login on the current realm.
+function F.seenHere(info)
+  info.realm = info.realm or Mock.world.realmName
+  info.region = info.region or Mock.world.region
+  info.realmID = info.realmID or Mock.world.realmID
+  return info
 end
 
 -- Every character of the account counts as logged in on the current realm.
 function F.placeAll(ns)
   for _, info in pairs(ns.db.characters[ns.RealmKey()]) do
-    info.realm = info.realm or Mock.world.realmName
+    F.seenHere(info)
   end
 end
 

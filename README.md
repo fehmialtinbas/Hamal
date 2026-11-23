@@ -100,9 +100,11 @@ Writing to someone else after Hamal filled the mail? Change the name in **To:** 
 
 Hamal mails a character only when it is certainly one of yours and on the realm you are on:
 
-- it has logged in on this account with Hamal installed, on this realm, and you haven't hidden it;
+- it has logged in on this account with Hamal installed, on this realm and in this region, and you
+  haven't hidden it;
 - there is no way to type in another name: bank alts are picked from your own characters;
-- characters on other realms are refused (the same name there can belong to a stranger here),
+- characters on other realms or in another region are refused (the same name there can belong to a
+  stranger here),
   and so are characters Hamal has not seen log in yet;
 - the recipient is checked again right before every mail, and the exact name of your character is used;
 - if the **To:** field changes to anything else after Hamal filled the mail, Hamal takes its items back out;

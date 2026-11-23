@@ -118,8 +118,12 @@ function Mailer.ExplainRefusal(key)
   local place = ns.Characters.Place(db, key)
   if place == "other" then
     local info = ns.Characters.Entry(db, key)
-    ns.Print("%s is on the %s realm; mail can't safely reach it from %s.", name, info.realm,
-      ns.Characters.CurrentRealm() or "here")
+    local here = ns.Characters.CurrentRealm()
+    if info.realm ~= here then
+      ns.Print("%s is on the %s realm; mail can't safely reach it from %s.", name, info.realm, here or "here")
+    else
+      ns.Print("%s is on another realm or in another region; mail can't safely reach it from here.", name)
+    end
   elseif place == "hidden" then
     ns.Print("%s is hidden in Hamal's settings.", name)
   elseif place == "unknown" then

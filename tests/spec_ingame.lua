@@ -35,9 +35,15 @@ T.describe("In-game findings", function()
     end)
     local bank = ns.Mules.Add(ns.db, "Bank Keeper")
     local mystery = ns.Mules.Add(ns.db, "Mystery Alt")
-    T.eq(ns.Characters.Place(ns.db, bank), "here", "realm taken from its ruleset")
+    T.eq(ns.db.characters.forever["Bank Keeper"].realm, "PvP", "realm taken from its ruleset")
+    T.eq(ns.Characters.Place(ns.db, bank), "unknown", "but no region or realm number saved: not mailed yet")
     T.eq(ns.Characters.Place(ns.db, mystery), "unknown", "no ruleset either: not mailed")
+    T.eq(ns.Mailer.VerifiedRecipient(bank), nil)
     T.eq(ns.Mailer.VerifiedRecipient(mystery), nil)
+    w.playerName = "Bank Keeper"
+    ns.Characters.Register(ns.db)
+    w.playerName = "Main Character"
+    T.eq(ns.Characters.Place(ns.db, bank), "here", "confirmed by logging in on it again")
     T.eq(#w.sent, 0)
   end)
 
