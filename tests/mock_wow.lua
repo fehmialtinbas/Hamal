@@ -55,6 +55,17 @@ function Frame:SetShown(on)
 end
 function Frame:IsShown() return self.shown end
 function Frame:HasFocus() return self.focus == true end
+-- Alpha and scale multiply down the parent chain, as in the game.
+function Frame:SetAlpha(alpha) self.alpha = alpha end
+function Frame:SetScale(scale) self.scale = scale end
+function Frame:GetEffectiveAlpha()
+  local own = self.alpha or 1
+  return self.parent and own * self.parent:GetEffectiveAlpha() or own
+end
+function Frame:GetEffectiveScale()
+  local own = self.scale or 1
+  return self.parent and own * self.parent:GetEffectiveScale() or own
+end
 function Frame:SetChecked(on) self.checked = not not on end
 function Frame:GetChecked() return self.checked == true end
 function Frame:CreateTexture() return Mock.newFrame("Texture", nil, self) end
@@ -429,6 +440,13 @@ end
 
 function World:CloseMailbox()
   _G.MailFrame:Hide()
+end
+
+-- What a mailbox addon such as DaylightUI does: keeps the game's mail window open but
+-- see-through and tiny in a corner, and shows a window of its own instead.
+function World:ParkMailWindow()
+  _G.MailFrame:SetAlpha(0)
+  _G.MailFrame:SetScale(0.001)
 end
 
 -- The player typing into the "To:" box.

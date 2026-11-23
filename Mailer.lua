@@ -130,6 +130,32 @@ function Mailer.ExplainRefusal(key)
 end
 
 -- Fill the empty attachment slots from the session queue. Returns how many were attached.
+-- When another addon has replaced the game's mail window, that window's own Send
+-- button could mail whatever sits in the game's mail form to any name typed there.
+-- So then Hamal never leaves items in the form: it attaches and sends in one go, and
+-- takes them back out if the mail doesn't leave.
+function Mailer.AttachOnSend()
+  return ns.UI ~= nil and not ns.UI.MailWindowOnScreen()
+end
+
+-- Take attached stacks back out of the form and put them at the front of the queue.
+local function takeBack(s)
+  local slots = {}
+  for i in pairs(s.attached) do slots[#slots + 1] = i end
+  table.sort(slots)
+  for n = #slots, 1, -1 do
+    local i = slots[n]
+    if GetSendMailItem(i) then ClickSendMailItemButton(i, true) end
+    table.insert(s.queue, 1, s.attached[i])
+  end
+  s.attached = {}
+  if CursorHasItem() then ClearCursor() end
+end
+
+local function afterNoSend(s)
+  if Mailer.AttachOnSend() then takeBack(s) end
+end
+
 function Mailer.AttachNext()
   local s = Mailer.session
   if not s or #s.queue == 0 then return 0 end
@@ -235,8 +261,8 @@ function Mailer.Start(key, skipStacking)
     sending = false,
     chain = db.options.chain,
   }
-  Mailer.SetRecipient(mule.name)
-  Mailer.AttachNext()
+  Mailer.SetRecipient(recipient)
+  if not Mailer.AttachOnSend() then Mailer.AttachNext() end
   refresh()
   return true
 end
@@ -314,7 +340,7 @@ function Mailer.Skip(item, forever)
     Mailer.Cancel()
     return
   end
-  if freed then Mailer.AttachNext() end
+  if freed and not Mailer.AttachOnSend() then Mailer.AttachNext() end
   refresh()
 end
 
@@ -431,6 +457,7 @@ local function onSendMail(recipient)
       s.sending = false
       s.attached = s.inFlight or {}
       s.inFlight = nil
+      afterNoSend(s)
       ns.Print("The mailbox did not answer. Press Send to try again.")
       refresh()
     end
@@ -455,7 +482,7 @@ local function onSendSuccess()
     s.awaitingRefill = false
     if not Mailer.IsMailboxOpen() then return end
     Mailer.SetRecipient(s.name)
-    Mailer.AttachNext()
+    if not Mailer.AttachOnSend() then Mailer.AttachNext() end
     refresh()
     if s.chain and ns.db.options.chain then
       ns.After(CHAIN_DELAY, function()
@@ -473,6 +500,7 @@ local function onSendFailed()
   s.attached = s.inFlight or {}
   s.inFlight = nil
   s.chain = false
+  afterNoSend(s)
   ns.Print("The mail to %s failed. Check the name and your postage, then press Send.", s.name)
   refresh()
 end
@@ -495,6 +523,7 @@ local function onBlocked(who, func)
       s.blocked = true
       ns.After(0, function() s.blocked = false end)
     end
+    afterNoSend(s)
   end
   ns.Print("The game wants a click for every mail here, so I turned off auto-chaining. "
     .. "Press Send for each batch (/hamal chain on to try again).")
@@ -528,6 +557,7 @@ local mailboxHandled = false
 
 local function onMailboxClosed()
   mailboxHandled = false
+  if ns.UI then ns.UI.Hide() end
   local s = Mailer.session
   Mailer.run = nil
   if Mailer.stacking then
@@ -568,10 +598,7 @@ function Mailer.OnMailboxOpened()
   mailboxHandled = true
   Mailer.HookMailFrame()
   if ns.Items and ns.db then ns.Items.RecordSeen(ns.db) end
-  if ns.UI then
-    ns.UI.Create()
-    ns.UI.Refresh()
-  end
+  if ns.UI then ns.UI.Show() end
   if ns.db and ns.db.options.autoSendOnOpen then
     ns.After(OPEN_DELAY, function()
       if Mailer.IsMailboxOpen() and not Mailer.session then Mailer.SendAll(false, true) end

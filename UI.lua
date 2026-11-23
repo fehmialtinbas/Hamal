@@ -57,11 +57,73 @@ local function fullWidth(widget, y)
   widget:SetPoint("TOPRIGHT", -PAD, y)
 end
 
+-- Is the game's own mail window really on screen? Mailbox addons (DaylightUI, TSM...)
+-- often keep it open but hidden away (see-through, shrunk or off screen) and show
+-- their own window instead.
+function UI.MailWindowOnScreen()
+  local mail = MailFrame
+  if not (mail and mail:IsVisible()) then return false end
+  local alpha = mail:GetEffectiveAlpha() or 1
+  local scale = mail:GetEffectiveScale() or 1
+  local normal = (UIParent and UIParent:GetEffectiveScale()) or 1
+  return alpha > 0.1 and scale > normal * 0.1
+end
+
+-- Docked beside the game's mail window when it shows; otherwise on its own, where the
+-- player last dragged it.
+function UI.Place()
+  if not panel then return end
+  panel:ClearAllPoints()
+  panel.docked = UI.MailWindowOnScreen()
+  if panel.docked then
+    panel:SetPoint("TOPLEFT", MailFrame, "TOPRIGHT", 2, -30)
+    return
+  end
+  local pos = ns.db and ns.db.panelPos
+  if pos and pos.point then
+    panel:SetPoint(pos.point, UIParent, pos.relativePoint or pos.point, pos.x or 0, pos.y or 0)
+  else
+    panel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 680, -116)
+  end
+end
+
+function UI.Show()
+  UI.Create()
+  if not panel then return end
+  UI.Place()
+  panel:Show()
+  UI.Refresh()
+  -- A mailbox addon may hide the game's window a moment after it opens.
+  ns.After(0.3, function()
+    if panel:IsShown() then UI.Place() end
+  end)
+end
+
+function UI.Hide()
+  if panel then panel:Hide() end
+end
+
 function UI.Create()
-  if panel or not SendMailFrame then return end
-  panel = CreateFrame("Frame", "HamalPanel", SendMailFrame, "BackdropTemplate")
+  if panel then return end
+  -- Its own frame, not part of the game's mail window, so it still shows when another
+  -- addon replaces that window.
+  panel = CreateFrame("Frame", "HamalPanel", UIParent, "BackdropTemplate")
   panel:SetWidth(WIDTH)
-  panel:SetPoint("TOPLEFT", MailFrame or SendMailFrame, "TOPRIGHT", 2, -30)
+  panel:Hide()
+  panel:SetClampedToScreen(true)
+  panel:SetMovable(true)
+  panel:EnableMouse(true)
+  panel:RegisterForDrag("LeftButton")
+  panel:SetScript("OnDragStart", ns.Safely(function(self)
+    if not self.docked then self:StartMoving() end
+  end))
+  panel:SetScript("OnDragStop", ns.Safely(function(self)
+    self:StopMovingOrSizing()
+    local point, _, relativePoint, x, y = self:GetPoint()
+    if point and not self.docked then
+      ns.db.panelPos = { point = point, relativePoint = relativePoint, x = x, y = y }
+    end
+  end))
   if panel.SetBackdrop then
     panel:SetBackdrop({
       bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -140,7 +202,7 @@ local function layoutItems(session, busy, y)
     button.item = entry.item
     button.icon:SetTexture(entry.item.icon or ns.ItemIcon(entry.item.itemID))
     button.count:SetText(entry.item.count > 1 and tostring(entry.item.count) or "")
-    button:SetAlpha(entry.slot and 1 or 0.5) -- dimmed: waits for a later mail
+    button:SetAlpha(i <= ns.Mailer.MaxSlots() and 1 or 0.5) -- dimmed: waits for a later mail
     button:SetEnabled(not busy)
     local col, row = (i - 1) % ICONS_PER_ROW, math.floor((i - 1) / ICONS_PER_ROW)
     button:ClearAllPoints()
@@ -250,7 +312,8 @@ function UI.Refresh()
     else
       sendButton:SetText(("Send mail %d/%d"):format(session.mails + 1, ns.Mailer.Estimate(session)))
     end
-    sendButton:SetEnabled(not busy and ns.Mailer.AttachedCount() > 0)
+    -- Items may still be only queued (another addon's mail window: attached on Send).
+    sendButton:SetEnabled(not busy and (ns.Mailer.AttachedCount() > 0 or #session.queue > 0))
     sendButton:Show()
     y = y - BUTTON_HEIGHT - 4
   else

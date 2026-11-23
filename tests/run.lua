@@ -14,5 +14,6 @@ require("spec_standalone")
 require("spec_quiet")
 require("spec_stacking")
 require("spec_ingame")
+require("spec_otherwindows")
 
 os.exit(T.report() and 0 or 1)

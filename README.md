@@ -109,6 +109,20 @@ Hamal mails a character only when it is certainly one of yours and on the realm 
 The one thing Hamal cannot know: if you delete a character, its name becomes free for others.
 Use **Forget** on a bank alt before you delete it.
 
+## With other mailbox addons
+
+UI suites such as DaylightUI (and TradeSkillMaster's mailing) keep the game's mail window open but
+hidden and show their own window instead. Hamal reads none of their data and works the same:
+
+- its panel is a window of its own: docked beside the game's mail window when that is on screen,
+  otherwise on its own; drag it where you like and it stays there;
+- while the game's window is hidden, Hamal never leaves items in the game's mail form (another
+  window's Send button could mail them to any name typed there): it attaches them and sends in
+  the same moment, and takes them back out if the mail doesn't leave.
+
+Typing a bank alt's name only works in the game's own To: field; with another mail window, use
+the panel's buttons.
+
 ## Light and quiet
 
 - Nothing runs every frame, and nothing runs while you play away from a mailbox: looting and
