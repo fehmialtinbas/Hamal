@@ -205,7 +205,8 @@ If two bank alts want the same item:
 ## Support Hamal
 
 Hamal is free, and it never asks for anything inside the game. If it saves you time and you'd like
-to say thanks, gold tips are welcome: mail them to **Buyme Coffee** on WoW: Forever (EU). Bug
+to say thanks, gold tips are welcome: mail them to **Buyme Coffee** on WoW: Forever (EU, PvP realm,
+Horde). Bug
 reports and ideas in the GitHub issues help just as much.
 
 ## Development
