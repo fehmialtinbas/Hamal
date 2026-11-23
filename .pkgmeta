@@ -3,3 +3,4 @@ package-as: Hamal
 ignore:
   - tests
   - README.md
+  - media
