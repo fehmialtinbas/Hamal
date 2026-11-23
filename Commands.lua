@@ -78,11 +78,21 @@ function handlers.status()
   local counts = ns.Scanner.CountAll(db)
   local keys = ns.Mules.SortedKeys(db)
   if #keys == 0 then ns.Print("  no bank alts yet") end
+  local me = ns.NormalizeName(ns.PlayerName())
   for _, key in ipairs(keys) do
     local mule = db.mules[key]
-    local verdict = ns.Mailer.VerifiedRecipient(key) and "can be mailed" or "gets nothing"
-    ns.Print("  bank alt %s: %s, %s, %d stack(s) waiting%s", mule.name, ns.Characters.Place(db, key), verdict,
-      counts[key] or 0, mule.disabled and " [off]" or "")
+    -- Say why a bank alt gets nothing, so the line never reads like a fault.
+    local verdict, stacks = "gets nothing", "waiting"
+    if key == me then
+      verdict, stacks = "this is you, nothing to mail", "already here"
+    elseif ns.Mailer.VerifiedRecipient(key) then
+      verdict = "can be mailed"
+    elseif mule.disabled then
+      verdict = "switched off"
+    end
+    local rules = (next(mule.categories) or next(mule.items)) and "" or ", no item types or items chosen"
+    ns.Print("  bank alt %s: %s, %s, %d stack(s) %s%s", mule.name, ns.Characters.Place(db, key), verdict,
+      counts[key] or 0, stacks, rules)
   end
   -- The item types Hamal sees, to check its categories against this client's data.
   local shown, seenIDs = 0, {}

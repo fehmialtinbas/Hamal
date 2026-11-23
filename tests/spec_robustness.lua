@@ -61,4 +61,18 @@ T.describe("Robustness", function()
     T.truthy(w:Printed("bank alt Vault Keeper: here, can be mailed, 2 stack"), "bank alt line")
     T.truthy(w:Printed("class 7 / subclass 5"), "item class line")
   end)
+
+  T.it("says why a bank alt gets nothing in /hamal status", function()
+    local w, ns = F.withVault()
+    local me = F.addMule(ns, "Main Character")
+    ns.Mules.ToggleCategory(ns.db, me, "cloth")
+    local spare = F.addMule(ns, "Spare Alt")
+    ns.db.mules[spare].disabled = true
+    w:Fill(F.LINEN, 2, 20)
+    SlashCmdList.HAMAL("status")
+    T.truthy(w:Printed("bank alt Main Character: here, this is you, nothing to mail, %d stack%(s%) already here"),
+      "logged in on the bank alt itself")
+    T.truthy(w:Printed("bank alt Spare Alt: here, switched off, 0 stack%(s%) waiting, no item types or items chosen"),
+      "switched off, no rules")
+  end)
 end)
