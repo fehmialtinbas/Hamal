@@ -7,6 +7,7 @@
 ## IconTexture: Interface\Icons\INV_Letter_15
 ## AddonCompartmentFunc: Hamal_OnAddonCompartmentClick
 ## X-Website: https://github.com/fehmialtinbas/Hamal
+## X-Curse-Project-ID: 1827061
 
 Core.lua
 Categories.lua

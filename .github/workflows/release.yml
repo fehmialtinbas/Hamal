@@ -1,6 +1,6 @@
 # Push a tag like v0.1.0 to build the addon zip and upload it.
-# Uploads need repository secrets: CF_API_KEY (CurseForge) and WAGO_API_TOKEN (Wago),
-# plus "## X-Curse-Project-ID" / "## X-Wago-ID" lines in Hamal.toc once the projects exist.
+# Uploads to CurseForge with the CF_API_TOKEN secret (project id in Hamal.toc). For Wago too,
+# add a WAGO_API_TOKEN secret and a "## X-Wago-ID" line in Hamal.toc.
 name: Release
 
 on:
@@ -15,9 +15,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+      GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
