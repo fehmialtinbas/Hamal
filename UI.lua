@@ -33,6 +33,7 @@ local function getMuleButton(i)
   local button = muleButtons[i]
   if not button then
     button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    ns.Theme.Button(button)
     button:SetHeight(BUTTON_HEIGHT)
     button:SetScript("OnClick", ns.Safely(onMuleClick))
     muleButtons[i] = button
@@ -129,14 +130,7 @@ function UI.Create()
       ns.db.panelPos = { point = point, relativePoint = relativePoint, x = x, y = y }
     end
   end))
-  if panel.SetBackdrop then
-    panel:SetBackdrop({
-      bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-      edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-      tile = true, tileSize = 16, edgeSize = 16,
-      insets = { left = 4, right = 4, top = 4, bottom = 4 },
-    })
-  end
+  ns.Theme.Frame(panel, "panel")
 
   local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   title:SetPoint("TOP", 0, -PAD)
@@ -153,10 +147,12 @@ function UI.Create()
   hintText:SetText("Click an item to leave it out.")
 
   sendButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+  ns.Theme.Button(sendButton)
   sendButton:SetHeight(BUTTON_HEIGHT)
   sendButton:SetScript("OnClick", ns.Safely(function() ns.Mailer.Send() end))
 
   sendAllButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+  ns.Theme.Button(sendAllButton)
   sendAllButton:SetHeight(BUTTON_HEIGHT)
   sendAllButton:SetScript("OnClick", ns.Safely(function() ns.Mailer.SendAll(true) end))
   sendAllButton:SetScript("OnEnter", ns.Safely(function(self)
@@ -165,6 +161,7 @@ function UI.Create()
   sendAllButton:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
 
   settingsButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+  ns.Theme.Button(settingsButton)
   settingsButton:SetHeight(BUTTON_HEIGHT)
   settingsButton:SetText("Settings")
   settingsButton:SetScript("OnClick", ns.Safely(function()

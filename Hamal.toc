@@ -16,6 +16,7 @@ Stacker.lua
 Characters.lua
 Items.lua
 Mailer.lua
+Theme.lua
 Widgets.lua
 UI.lua
 Config.lua

@@ -16,5 +16,6 @@ require("spec_stacking")
 require("spec_ingame")
 require("spec_otherwindows")
 require("spec_access")
+require("spec_look")
 
 os.exit(T.report() and 0 or 1)

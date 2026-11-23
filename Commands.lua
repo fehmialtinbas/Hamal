@@ -112,6 +112,7 @@ function handlers.help()
   ns.Print("  /hamal chain on|off - send every batch with one click")
   ns.Print("  /hamal remove Name - forget a bank alt")
   ns.Print("  /hamal minimap [on|off|reset] - the minimap button")
+  ns.Print("  /hamal look [dark|game] - switch Hamal's look")
 end
 
 -- Only characters of this account that Hamal has seen log in can become bank alts:
@@ -267,6 +268,15 @@ end
 
 function handlers.auto(args)
   setOption("autoAttach", "Fill the mail when you type a bank alt's name", args)
+end
+
+function handlers.look(args)
+  local word = ns.Trim(args or ""):lower()
+  if word ~= "dark" and word ~= "game" then
+    word = ns.Theme.Look() == "dark" and "game" or "dark"
+  end
+  ns.Theme.SetLook(word)
+  ns.Print("Look: %s", word == "dark" and "dark and plain" or "the game's")
 end
 
 function handlers.chain(args)

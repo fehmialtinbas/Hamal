@@ -114,6 +114,7 @@ local DEFAULTS = {
     chain = true,           -- after one mail goes out, send the next batch without another click
     autoSendOnOpen = false, -- send to every bank alt as soon as a mailbox opens
     stackFirst = true,      -- combine partial stacks of outgoing items before mailing
+    look = "game",          -- "game" or "dark" (see Theme.lua)
   },
 }
 

@@ -8,7 +8,7 @@ local Config = {}
 ns.Config = Config
 
 local WIDTH, HEIGHT = 640, 540
-local PANE_TOP = -56
+local PANE_TOP = -64
 local LEFT, LEFT_WIDTH = 14, 200
 local RIGHT = LEFT + LEFT_WIDTH + 18
 local RIGHT_WIDTH = WIDTH - RIGHT - 14
@@ -80,7 +80,7 @@ local function button(parent, label, width, x, y, onClick)
   b:SetPoint("TOPLEFT", x, y)
   b:SetText(label)
   b:SetScript("OnClick", ns.Safely(onClick))
-  return b
+  return ns.Theme.Button(b)
 end
 
 -- A slot you drop items on (drag from a bag, or click while holding one).
@@ -675,7 +675,12 @@ local function buildOptionsTab(pane)
     Config.Refresh()
   end)
 
-  local excludeY = -194
+  ui.darkCheck = checkBox(pane, LEFT, -164, labelWidth, function(self)
+    ns.Theme.SetLook(self:GetChecked() and "dark" or "game")
+  end)
+  ui.darkCheck.label:SetText("Dark, plain look (sits well with UI suites such as DaylightUI or ElvUI)")
+
+  local excludeY = -222
   text(pane, "Never send (any bank alt)", "GameFontNormal", LEFT, excludeY + 18)
   ui.excludeDrop = dropZone(pane, LEFT, excludeY, "Drag an item here to keep it in your bags.", addExclude)
   ui.excludeMore = text(pane, "", "GameFontDisableSmall", LEFT, excludeY - 2 * (ICON + ICON_GAP))
@@ -691,6 +696,7 @@ local function refreshOptions(db)
   ui.openCheck:SetChecked(db.options.autoSendOnOpen)
   ui.stackCheck:SetChecked(db.options.stackFirst)
   ui.minimapCheck:SetChecked(not (db.minimap and db.minimap.hide))
+  ui.darkCheck:SetChecked(db.options.look == "dark")
   layoutIcons(panes.options, ui.excludeButtons, ns.SortedIDs(db.exclude), LEFT + ICON + 8, ui.excludeY,
     removeExclude, ui.excludeMore)
 end
@@ -699,7 +705,11 @@ end
 
 function Config.Create()
   if frame then return end
-  frame = CreateFrame("Frame", "HamalConfig", UIParent, "BasicFrameTemplateWithInset")
+  -- A plain backdrop frame, so both looks (Theme.lua) can dress it.
+  frame = CreateFrame("Frame", "HamalConfig", UIParent, "BackdropTemplate")
+  ns.Theme.Frame(frame, "window")
+  local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+  close:SetPoint("TOPRIGHT", -4, -4)
   frame:SetSize(WIDTH, HEIGHT)
   frame:SetPoint("CENTER")
   -- Below DIALOG, so the game's menus and confirmation popups always open on top of it;
@@ -722,11 +732,11 @@ function Config.Create()
   table.insert(UISpecialFrames, "HamalConfig") -- Esc closes it
 
   local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  title:SetPoint("TOP", 0, -6)
+  title:SetPoint("TOP", 0, -16)
   title:SetText("Hamal")
 
   for i, tab in ipairs(TABS) do
-    local b = button(frame, tab.label, 110, LEFT + (i - 1) * 114, -28, function(self) Config.ShowTab(self.tab) end)
+    local b = button(frame, tab.label, 110, LEFT + 4 + (i - 1) * 114, -36, function(self) Config.ShowTab(self.tab) end)
     b.tab = tab.key
     tabButtons[tab.key] = b
     local pane = CreateFrame("Frame", nil, frame)

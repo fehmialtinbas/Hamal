@@ -124,6 +124,16 @@ Several ways in, so no UI suite can take them all away:
 
 The panel and the settings window sit above ordinary windows and come to the front when clicked.
 
+## Look
+
+Two looks, switched under Options or with `/hamal look dark|game`, applied at once to every open
+Hamal window:
+
+- **Game** (default): the game's dialog frames and red buttons.
+- **Dark**: a flat dark background, a thin border and plain buttons with white text, to sit well
+  next to UI suites such as DaylightUI or ElvUI. Hamal doesn't depend on them; it draws this
+  look itself.
+
 ## With other mailbox addons
 
 UI suites such as DaylightUI (and TradeSkillMaster's mailing) keep the game's mail window open but
