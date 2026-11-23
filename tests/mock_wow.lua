@@ -146,7 +146,15 @@ function World:installGlobals()
   _G.Enum = {
     BagIndex = { ReagentBag = 5 },
     GameRule = { HardcoreRuleset = 10, PvPRuleset = 213, RPRuleset = 214 },
+    PlayerInteractionType = { MailInfo = 17 },
   }
+  _G.unpack = unpack -- the game's Lua 5.1 has it as a global
+  _G.C_AddOns = { GetAddOnMetadata = function() return "@project-version@" end }
+  -- The game's error frame; only installed when a test asks for it.
+  w.errors = {}
+  _G.geterrorhandler = w.useErrorHandler and function()
+    return function(err) table.insert(w.errors, err) end
+  end or nil
   _G.SlashCmdList = {}
   _G.HamalDB = nil
   _G.GetMoney = function() return w.money end

@@ -446,7 +446,11 @@ local function onRecipientChanged(userInput)
   end)
 end
 
+-- Several signals report the same opening/closing; handle each visit once.
+local mailboxHandled = false
+
 local function onMailboxClosed()
+  mailboxHandled = false
   local s = Mailer.session
   Mailer.run = nil
   if not s then return end
@@ -478,13 +482,35 @@ end)
 
 local OPEN_DELAY = 0.5
 
-ns.On("MAIL_SHOW", function()
+function Mailer.OnMailboxOpened()
+  if mailboxHandled then return end
+  mailboxHandled = true
   Mailer.HookMailFrame()
+  if ns.UI then
+    ns.UI.Create()
+    ns.UI.Refresh()
+  end
   if ns.db and ns.db.options.autoSendOnOpen then
     C_Timer.After(OPEN_DELAY, function()
       if Mailer.IsMailboxOpen() and not Mailer.session then Mailer.SendAll(false, true) end
     end)
   end
+end
+
+-- Newer clients report opening a mailbox as a "player interaction"; older ones fire
+-- MAIL_SHOW / MAIL_CLOSED. Listen to both.
+local function isMailInteraction(kind)
+  local types = Enum and Enum.PlayerInteractionType
+  return types ~= nil and types.MailInfo ~= nil and kind == types.MailInfo
+end
+
+ns.On("MAIL_SHOW", Mailer.OnMailboxOpened)
+ns.On("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", function(kind)
+  if isMailInteraction(kind) then Mailer.OnMailboxOpened() end
+end)
+ns.On("MAIL_CLOSED", onMailboxClosed)
+ns.On("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", function(kind)
+  if isMailInteraction(kind) then onMailboxClosed() end
 end)
 ns.On("MAIL_SEND_SUCCESS", onSendSuccess)
 ns.On("MAIL_FAILED", onSendFailed)

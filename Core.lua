@@ -23,6 +23,13 @@ function ns.RealmKey()
   return (GetNormalizedRealmName and GetNormalizedRealmName()) or GetRealmName()
 end
 
+function ns.Version()
+  local getMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+  local version = getMetadata and getMetadata(addonName, "Version")
+  if not version or version:find("@") then return "dev" end -- not packaged yet
+  return version
+end
+
 local PREFIX = "|cffe6b85cHamal|r: "
 
 function ns.Print(fmt, ...)
@@ -142,11 +149,23 @@ function ns.On(event, fn)
   list[#list + 1] = fn
 end
 
+-- In the game a failing handler is reported through the normal error frame and the
+-- other handlers of the event still run. Outside the game (tests) errors propagate.
+local errorHandler = geterrorhandler
+
 eventFrame:SetScript("OnEvent", function(_, event, ...)
   local list = handlers[event]
   if not list then return end
+  if not errorHandler then
+    for i = 1, #list do
+      list[i](...)
+    end
+    return
+  end
+  local count, args = select("#", ...), { ... }
   for i = 1, #list do
-    list[i](...)
+    local fn = list[i]
+    xpcall(function() fn(unpack(args, 1, count)) end, errorHandler())
   end
 end)
 

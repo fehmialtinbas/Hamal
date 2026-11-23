@@ -101,15 +101,16 @@ function UI.Create()
     ns.Config.Open(session and session.key)
   end)
 
-  panel:SetScript("OnShow", function() UI.Refresh() end)
+  panel:HookScript("OnShow", function() UI.Refresh() end)
 
   UI.panel, UI.status, UI.sendButton, UI.settingsButton = panel, status, sendButton, settingsButton
   UI.sendAllButton = sendAllButton
   UI.muleButtons, UI.itemButtons = muleButtons, itemButtons
 end
 
-local function statusText(keys, session)
+local function statusText(keys, session, iAmBank)
   if #keys == 0 then
+    if iAmBank then return "This character is a bank alt.\nOpen your inbox to collect." end
     return "No bank alts yet.\nPress Settings to add one."
   end
   if not session then
@@ -165,7 +166,12 @@ end
 function UI.Refresh()
   if not panel or not panel:IsVisible() or not ns.db then return end
   local db = ns.db
-  local keys = ns.Mules.ActiveKeys(db)
+  -- Bank alts this character can mail; never itself.
+  local me = ns.NormalizeName(ns.PlayerName())
+  local keys = {}
+  for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
+    if key ~= me then keys[#keys + 1] = key end
+  end
   local counts = ns.Scanner.CountAll(db)
   local session = ns.Mailer.session
   local busy = session and session.sending
@@ -200,7 +206,7 @@ function UI.Refresh()
 
   status:ClearAllPoints()
   status:SetPoint("TOPLEFT", PAD, y - 2)
-  status:SetText(statusText(keys, session))
+  status:SetText(statusText(keys, session, ns.Mules.IsActive(db, me)))
   y = y - 2 - (status:GetStringHeight() or 12) - 6
 
   y = layoutItems(session, busy, y)
@@ -225,9 +231,6 @@ function UI.Refresh()
   panel:SetHeight(-y + PAD)
 end
 
-ns.On("MAIL_SHOW", function()
-  UI.Create()
-  UI.Refresh()
-end)
+-- Created when a mailbox opens (Mailer.OnMailboxOpened).
 ns.On("BAG_UPDATE_DELAYED", UI.Refresh)
 ns.On("MAIL_SEND_INFO_UPDATE", UI.Refresh)

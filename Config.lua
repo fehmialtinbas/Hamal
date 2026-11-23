@@ -68,7 +68,7 @@ local function checkBox(parent, x, y, labelWidth, onClick)
   check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
   check.label:SetWidth(labelWidth)
   check.label:SetJustifyH("LEFT")
-  check:SetScript("OnClick", onClick)
+  check:HookScript("OnClick", onClick) -- keep the template's own click handling (sound)
   return check
 end
 
@@ -225,7 +225,7 @@ local function buildAltsTab(pane)
     row.check:SetSize(CHECK, CHECK)
     row.check:SetPoint("LEFT", 0, 0)
     row.check.row = row
-    row.check:SetScript("OnClick", toggleBankAlt)
+    row.check:HookScript("OnClick", toggleBankAlt)
     row.check:SetScript("OnEnter", function(self)
       ns.Widgets.ShowTextTooltip(self, "Bank alt: Hamal mails items to this character.")
     end)
@@ -270,7 +270,7 @@ local function buildAltsTab(pane)
   add(text(pane, "Shortcut for To:", "GameFontHighlightSmall", RIGHT, -52))
   ui.aliasBox = add(inputBox(pane, 90, RIGHT + 100, -48))
   ui.aliasBox:SetScript("OnEnterPressed", saveAlias)
-  ui.aliasBox:SetScript("OnEditFocusLost", saveAlias)
+  ui.aliasBox:HookScript("OnEditFocusLost", saveAlias)
   add(text(pane, "e.g. sb", "GameFontDisableSmall", RIGHT + 210, -52))
 
   add(text(pane, "Item types this alt gets", "GameFontNormal", RIGHT, -80))
@@ -493,7 +493,7 @@ end
 local function buildItemsTab(pane)
   text(pane, "Search", "GameFontHighlightSmall", LEFT, -8)
   ui.searchBox = inputBox(pane, 170, LEFT + 44, -4)
-  ui.searchBox:SetScript("OnTextChanged", function()
+  ui.searchBox:HookScript("OnTextChanged", function()
     itemOffset = 0
     Config.Refresh()
   end)
@@ -663,7 +663,7 @@ function Config.Create()
   buildItemsTab(panes.items)
   buildOptionsTab(panes.options)
 
-  frame:SetScript("OnShow", function() Config.Refresh() end)
+  frame:HookScript("OnShow", function() Config.Refresh() end)
 
   Config.frame = frame
   ui.tabs = tabButtons

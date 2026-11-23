@@ -54,9 +54,43 @@ end
 handlers.config = handlers.settings
 handlers.options = handlers.settings
 
+-- Everything worth knowing when something doesn't work in the game.
+function handlers.status()
+  local db = ns.db
+  local onOff = function(value) return value and "on" or "off" end
+  ns.Print("status (version %s):", tostring(ns.Version()))
+  ns.Print("  you: %s | realm: %s | ruleset: %s | Forever client: %s", tostring(ns.PlayerName()),
+    tostring(ns.Characters.CurrentRealm()), tostring(ns.Characters.Ruleset()), ns.IsForever and "yes" or "no")
+  ns.Print("  mailbox open: %s | items per mail: %d | mail frame found: %s",
+    ns.Mailer.IsMailboxOpen() and "yes" or "no", ATTACHMENTS_MAX_SEND or 12,
+    (MailFrame and SendMailNameEditBox) and "yes" or "no")
+  ns.Print("  options: fill on name %s | one-click chain %s | send on open %s",
+    onOff(db.options.autoAttach), onOff(db.options.chain), onOff(db.options.autoSendOnOpen))
+  local counts = ns.Scanner.CountAll(db)
+  local keys = ns.Mules.SortedKeys(db)
+  if #keys == 0 then ns.Print("  no bank alts yet") end
+  for _, key in ipairs(keys) do
+    local mule = db.mules[key]
+    local verdict = ns.Mailer.VerifiedRecipient(key) and "can be mailed" or "gets nothing"
+    ns.Print("  bank alt %s: %s, %s, %d stack(s) waiting%s", mule.name, ns.Characters.Place(db, key), verdict,
+      counts[key] or 0, mule.disabled and " [off]" or "")
+  end
+  -- The item types Hamal sees, to check its categories against this client's data.
+  local shown, seenIDs = 0, {}
+  ns.Scanner.EachItem(function(item)
+    if shown < 6 and not seenIDs[item.itemID] then
+      seenIDs[item.itemID] = true
+      shown = shown + 1
+      ns.Print("  bag item %s: class %s / subclass %s%s", item.link or item.itemID, tostring(item.classID),
+        tostring(item.subclassID), item.isBound and " (bound)" or "")
+    end
+  end)
+end
+
 function handlers.help()
   ns.Print("commands:")
   ns.Print("  /hamal - open the settings window")
+  ns.Print("  /hamal status - what Hamal sees (for bug reports)")
   ns.Print("  /hamal add Name Surname - make one of your characters a bank alt")
   ns.Print("  /hamal cat Name cloth herb - toggle item types for it (/hamal cats lists types)")
   ns.Print("  /hamal item Name [item] - always send this item to it (shift-click the item)")
