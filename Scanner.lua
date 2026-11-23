@@ -37,6 +37,7 @@ function Scanner.ReadSlot(bag, slot)
     isLocked = info.isLocked,
     link = info.hyperlink,
     name = info.itemName,
+    icon = info.iconFileID,
     classID = classID,
     subclassID = subclassID,
   }

@@ -48,8 +48,15 @@ end
 
 local handlers = {}
 
+function handlers.settings()
+  ns.Config.Open()
+end
+handlers.config = handlers.settings
+handlers.options = handlers.settings
+
 function handlers.help()
   ns.Print("commands:")
+  ns.Print("  /hamal - open the settings window")
   ns.Print("  /hamal add Name Surname - add a bank alt")
   ns.Print("  /hamal cat Name cloth herb - toggle item types for it (/hamal cats lists types)")
   ns.Print("  /hamal item Name [item] - always send this item to it (shift-click the item)")
@@ -212,6 +219,7 @@ end
 function Commands.Run(msg)
   if not ns.db then return end
   msg = ns.Trim(msg or "")
+  if msg == "" then return handlers.settings() end
   local cmd, args = msg:match("^(%S+)%s*(.-)$")
   local handler = cmd and handlers[cmd:lower()] or handlers.help
   handler(args or "")

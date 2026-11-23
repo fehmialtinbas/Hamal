@@ -33,19 +33,21 @@ function Rules.IsMailable(item, db)
 end
 
 -- Which bank alt should get this item, and why?
--- An item rule beats a type rule; between equal rules the alphabetically first
--- bank alt wins, so the answer never changes from one scan to the next.
+-- 1. An item rule beats any type rule.
+-- 2. A specific type beats a broad one: an alt with "cloth" gets Linen Cloth
+--    even if another alt takes "tradegoods" (Categories.list is ordered specific first).
+-- 3. Between equal rules the alphabetically first bank alt wins, so the answer
+--    never changes from one scan to the next.
 function Rules.Resolve(item, db, keys)
   if not Rules.IsMailable(item, db) then return nil end
   keys = keys or ns.Mules.SortedKeys(db)
   for _, key in ipairs(keys) do
     if db.mules[key].items[item.itemID] then return key, "item" end
   end
-  for _, key in ipairs(keys) do
-    local categories = db.mules[key].categories
-    for _, def in ipairs(ns.Categories.list) do
-      if categories[def.key] and ns.Categories.Matches(def.key, item) then
-        return key, def.key
+  for _, def in ipairs(ns.Categories.list) do
+    if ns.Categories.Matches(def.key, item) then
+      for _, key in ipairs(keys) do
+        if db.mules[key].categories[def.key] then return key, def.key end
       end
     end
   end

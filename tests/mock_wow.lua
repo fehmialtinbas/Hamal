@@ -50,7 +50,14 @@ function Frame:Hide()
     fireScript(self, "OnHide")
   end
 end
+function Frame:SetShown(on)
+  if on then self:Show() else self:Hide() end
+end
 function Frame:IsShown() return self.shown end
+function Frame:HasFocus() return self.focus == true end
+function Frame:SetChecked(on) self.checked = not not on end
+function Frame:GetChecked() return self.checked == true end
+function Frame:CreateTexture() return Mock.newFrame("Texture", nil, self) end
 function Frame:IsVisible()
   if not self.shown then return false end
   if self.parent then return self.parent:IsVisible() end
@@ -70,7 +77,9 @@ function Frame:Disable() self.enabled = false end
 function Frame:IsEnabled() return self.enabled end
 function Frame:CreateFontString() return Mock.newFrame("FontString", nil, self) end
 function Frame:Click()
-  if self.enabled then fireScript(self, "OnClick", "LeftButton") end
+  if not self.enabled then return end
+  if self.objType == "CheckButton" then self.checked = not self.checked end
+  fireScript(self, "OnClick", "LeftButton")
 end
 
 function Mock.newFrame(objType, name, parent)
@@ -116,6 +125,16 @@ function World:installGlobals()
   _G.GetCoinTextureString = function(copper) return copper .. "c" end
   _G.SetSendMailMoney = function() end
   _G.SetSendMailCOD = function() end
+  _G.IsShiftKeyDown = function() return w.shift end
+  _G.UISpecialFrames = {}
+  _G.YES, _G.NO = "Yes", "No"
+  _G.StaticPopupDialogs = {}
+  _G.StaticPopup_Show = function(which, _, _, data)
+    w.popup = { which = which, data = data }
+  end
+  _G.GetCursorInfo = function()
+    if w.cursor then return "item", w.cursor.itemID end
+  end
 
   _G.C_Item = {
     GetItemInfoInstant = function(id)
@@ -138,7 +157,7 @@ function World:installGlobals()
       local d = w.items[it.itemID]
       return {
         itemID = it.itemID, stackCount = it.count, isLocked = it.locked, isBound = it.bound,
-        quality = d.quality, hyperlink = "[" .. d.name .. "]", itemName = d.name,
+        quality = d.quality, hyperlink = "[" .. d.name .. "]", itemName = d.name, iconFileID = 100000 + it.itemID,
       }
     end,
     -- The real item stays in its bag slot, locked, while it is on the cursor or attached.
@@ -232,6 +251,8 @@ function World:installGlobals()
     end
   end
 
+  _G.UIParent = Mock.newFrame("Frame", "UIParent")
+  _G.GameTooltip = Mock.newFrame("GameTooltip", "GameTooltip", _G.UIParent)
   _G.MailFrame = Mock.newFrame("Frame", "MailFrame")
   _G.SendMailFrame = Mock.newFrame("Frame", "SendMailFrame", _G.MailFrame)
   _G.SendMailNameEditBox = Mock.newFrame("EditBox", "SendMailNameEditBox", _G.SendMailFrame)
@@ -331,6 +352,31 @@ function World:Click(button)
   self.hardware = true
   button:Click()
   self.hardware = false
+end
+
+function World:ShiftClick(button)
+  self.shift = true
+  self:Click(button)
+  self.shift = false
+end
+
+-- The player confirms the last StaticPopup.
+function World:AcceptPopup()
+  local popup = assert(self.popup, "no popup is open")
+  self.popup = nil
+  _G.StaticPopupDialogs[popup.which].OnAccept(nil, popup.data)
+end
+
+-- The player types into an edit box and presses Enter.
+function World:Enter(box, value)
+  box.text = value
+  box:FireScript("OnEnterPressed")
+end
+
+-- The player picks up a bag item and drops it on `target`.
+function World:DragItem(bag, slot, target)
+  _G.C_Container.PickupContainerItem(bag, slot)
+  target:FireScript("OnReceiveDrag")
 end
 
 function World:Printed(pattern)

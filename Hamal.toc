@@ -5,6 +5,7 @@
 ## Version: @project-version@
 ## SavedVariables: HamalDB
 ## IconTexture: Interface\Icons\INV_Letter_15
+## AddonCompartmentFunc: Hamal_OnAddonCompartmentClick
 
 Core.lua
 Categories.lua
@@ -12,5 +13,7 @@ Mules.lua
 Rules.lua
 Scanner.lua
 Mailer.lua
+Widgets.lua
 UI.lua
+Config.lua
 Commands.lua

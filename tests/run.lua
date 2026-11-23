@@ -6,5 +6,6 @@ local T = require("harness")
 require("spec_rules")
 require("spec_commands")
 require("spec_mailer")
+require("spec_config")
 
 os.exit(T.report() and 0 or 1)

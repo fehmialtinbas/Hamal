@@ -4,13 +4,23 @@ exclude_files = { "tests/**", ".release/**" }
 
 globals = {
   "HamalDB",
+  "Hamal_OnAddonCompartmentClick",
   "SlashCmdList",
   "SLASH_HAMAL1",
   "SLASH_HAMAL2",
+  "StaticPopupDialogs",
 }
 
 read_globals = {
   "ATTACHMENTS_MAX_SEND",
+  "GameTooltip",
+  "GetCursorInfo",
+  "IsShiftKeyDown",
+  "NO",
+  "StaticPopup_Show",
+  "UIParent",
+  "UISpecialFrames",
+  "YES",
   "C_Container",
   "C_Item",
   "C_Timer",

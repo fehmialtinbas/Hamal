@@ -70,6 +70,34 @@ function Mules.SetAlias(db, alias, key)
   return true
 end
 
+-- The settings window keeps one alias per bank alt: replace whatever it had.
+-- An empty alias just removes the old one.
+function Mules.SetOnlyAlias(db, key, alias)
+  for a, target in pairs(db.aliases) do
+    if target == key then db.aliases[a] = nil end
+  end
+  if not alias or ns.Trim(alias) == "" then return true end
+  return Mules.SetAlias(db, alias, key)
+end
+
+function Mules.AliasOf(db, key)
+  local found = {}
+  for alias, target in pairs(db.aliases) do
+    if target == key then found[#found + 1] = alias end
+  end
+  table.sort(found)
+  return found[1] or ""
+end
+
+-- Bank alts that take a type, in the order Rules.Resolve tries them.
+function Mules.CategoryOwners(db, category)
+  local owners = {}
+  for _, key in ipairs(Mules.SortedKeys(db)) do
+    if db.mules[key].categories[category] then owners[#owners + 1] = key end
+  end
+  return owners
+end
+
 function Mules.ToggleCategory(db, key, category)
   local mule = db.mules[key]
   local on = not mule.categories[category]

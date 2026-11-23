@@ -49,6 +49,23 @@ function ns.ItemLabel(itemID)
   return "item " .. tostring(itemID)
 end
 
+local QUESTION_MARK_ICON = 134400
+
+function ns.ItemIcon(itemID)
+  local getInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+  local icon = getInstant and select(5, getInstant(itemID))
+  return icon or QUESTION_MARK_ICON
+end
+
+function ns.SortedIDs(set)
+  local ids = {}
+  for id in pairs(set) do
+    ids[#ids + 1] = id
+  end
+  table.sort(ids)
+  return ids
+end
+
 -- Saved data ------------------------------------------------------------------
 
 ns.DB_VERSION = 1

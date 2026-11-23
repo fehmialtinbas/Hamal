@@ -12,14 +12,24 @@ Built for **World of Warcraft: Forever** (1.60.1, interface 16001).
 > Status: early. The mailing flow is covered by offline tests against a fake client but has not
 > been tried in the game yet.
 
-## Setup
+## Setup (in game)
+
+Type `/hamal` (or use the minimap addon menu, or **Settings** in the mailbox panel) to open the settings window:
+
+- **Bank alts** (left): add each bank alt by its full name. You can have as many as you like.
+- **Item types this alt gets**: tick cloth for one alt, herbs and leather for another, and so on.
+  A grey name next to a type shows which other alt already takes it.
+- **Always send these items**: drag a single item from your bags onto the slot.
+- **Shortcut for To:**: a one-word alias, e.g. `vk` for Vault Keeper.
+- **Never send (any bank alt)**: drag items here to keep them in your bags.
+- **Options**: fill the mail when you type a name; send every batch with one click.
+
+Everything can also be done with slash commands (see below), e.g.:
 
 ```
-/hamal add Vault Keeper                    -- your bank alt's full name
-/hamal cat Vault Keeper cloth leather herb  -- item types it collects (/hamal cats lists them)
-/hamal item Vault Keeper [shift-click item] -- one specific item, always
-/hamal alias vk Vault Keeper               -- typing "vk" in To: means Vault Keeper
-/hamal preview vault                       -- what would be sent right now
+/hamal add Vault Keeper
+/hamal cat Vault Keeper cloth leather herb
+/hamal preview vault
 ```
 
 Names can be shortened in commands as long as they stay unique (`vault` instead of `Vault Keeper`).
@@ -28,8 +38,10 @@ With a single bank alt you can leave the name out.
 ## At the mailbox
 
 1. Open the **Send Mail** tab. The Hamal panel next to it lists your bank alts and how many stacks are waiting for each.
-2. Type a bank alt's full name or alias in **To:**, or click its button. Hamal attaches the first 12 stacks.
-3. Press **Send mail 1/N** (Hamal's button or the game's own Send). Hamal sends the remaining batches one after another.
+2. Type a bank alt's full name or alias in **To:**, or click its button. Hamal attaches the first 12 stacks
+   and shows every stack it is about to send as an icon. Dimmed icons wait for a later mail.
+3. Changed your mind about one? **Click** its icon to leave it out this time, **Shift-click** to never send that item.
+4. Press **Send mail 1/N** (Hamal's button or the game's own Send). Hamal sends the remaining batches one after another.
 
 If the game insists on a click for every mail, Hamal notices, turns chaining off and lets you press
 Send once per batch. `/hamal chain on` tries chaining again.
@@ -42,8 +54,11 @@ Writing to someone else after Hamal filled the mail? Change the name in **To:** 
 - Hearthstone, Thieves' Tools and profession tools (mining pick, skinning knife, hammer, rods, ...)
 - Anything on your exclude list: `/hamal exclude [item]`
 
-If two bank alts want the same item, a specific item rule beats an item-type rule. Between equal
-rules, the alphabetically first bank alt gets it.
+If two bank alts want the same item:
+
+1. A single-item rule beats any type rule.
+2. A specific type beats a broad one: the alt with `cloth` gets Linen Cloth even if another alt takes `tradegoods`.
+3. Between equal rules, the alphabetically first bank alt gets it (the settings window warns you).
 
 ## Item types
 
@@ -59,6 +74,7 @@ rules, the alphabetically first bank alt gets it.
 
 | command | does |
 | --- | --- |
+| `/hamal` | open the settings window |
 | `/hamal add Name` / `remove Name` | add or forget a bank alt |
 | `/hamal cat Name type...` | toggle item types |
 | `/hamal item Name [item]` | toggle one item |

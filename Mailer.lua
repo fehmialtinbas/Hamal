@@ -161,6 +161,53 @@ function Mailer.Send()
   return true
 end
 
+-- What this session will send: attached stacks first (with their mail slot), then the queue.
+function Mailer.SessionItems()
+  local s = Mailer.session
+  local out = {}
+  if not s then return out end
+  for i = 1, maxSlots() do
+    local item = s.attached[i]
+    if item and GetSendMailItem(i) then out[#out + 1] = { item = item, slot = i } end
+  end
+  for _, item in ipairs(s.queue) do
+    out[#out + 1] = { item = item }
+  end
+  return out
+end
+
+-- Leave a stack out of this session. With `forever`, every stack of that item is
+-- left out and the item goes on the never-send list.
+function Mailer.Skip(item, forever)
+  local s = Mailer.session
+  if not s or s.sending or not item then return end
+  local function isTarget(other)
+    if forever then return other.itemID == item.itemID end
+    return other == item
+  end
+  for i = #s.queue, 1, -1 do
+    if isTarget(s.queue[i]) then table.remove(s.queue, i) end
+  end
+  local freed = false
+  for i, attached in pairs(s.attached) do
+    if isTarget(attached) then
+      if GetSendMailItem(i) then ClickSendMailItemButton(i, true) end
+      s.attached[i] = nil
+      freed = true
+    end
+  end
+  if forever then
+    ns.db.exclude[item.itemID] = true
+    ns.Print("%s will never be sent (remove it in /hamal).", item.link or ns.ItemLabel(item.itemID))
+  end
+  if next(s.attached) == nil and #s.queue == 0 then
+    Mailer.Cancel()
+    return
+  end
+  if freed then Mailer.AttachNext() end
+  refresh()
+end
+
 function Mailer.Cancel()
   local s = Mailer.session
   if not s then return end
