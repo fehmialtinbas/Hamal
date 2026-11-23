@@ -23,6 +23,13 @@ function Scanner.ItemClass(itemID)
   return classID, subclassID
 end
 
+-- The game's "Crafting Reagent" flag (item info is always cached for bag items).
+function Scanner.IsCraftingReagent(itemID)
+  local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+  if not getInfo then return false end
+  return select(17, getInfo(itemID)) == true
+end
+
 function Scanner.ReadSlot(bag, slot)
   local info = C_Container.GetContainerItemInfo(bag, slot)
   if not info or not info.itemID then return nil end
@@ -40,6 +47,7 @@ function Scanner.ReadSlot(bag, slot)
     icon = info.iconFileID,
     classID = classID,
     subclassID = subclassID,
+    isCraftingReagent = Scanner.IsCraftingReagent(info.itemID),
   }
 end
 

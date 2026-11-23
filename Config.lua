@@ -185,6 +185,7 @@ end
 local function addItem(itemID)
   if not ns.Mules.IsEnabled(ns.db, selectedKey) then return end
   ns.Items.SetChoice(ns.db, itemID, selectedKey)
+  ns.Print("%s always goes to %s.", ns.ItemLabel(itemID), ns.db.mules[selectedKey].name)
   changed()
 end
 
@@ -221,7 +222,12 @@ local function buildAltsTab(pane)
     local row = CreateFrame("Button", nil, pane)
     row:SetSize(LEFT_WIDTH, CHECK)
     row:SetPoint("TOPLEFT", LEFT, -24 - (i - 1) * (CHECK + 2))
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    row:SetHighlightTexture("Interface\\Buttons\\UI-Listbox-Highlight2", "ADD")
+    -- A quiet band marks the selected character (hover keeps the light highlight).
+    row.selected = row:CreateTexture(nil, "BACKGROUND")
+    row.selected:SetAllPoints()
+    row.selected:SetColorTexture(1, 0.82, 0, 0.12)
+    row.selected:Hide()
     row:SetScript("OnClick", ns.Safely(selectRow))
     row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
     row.check:SetSize(CHECK, CHECK)
@@ -396,7 +402,7 @@ local function refreshAlts(db)
       row.entry = entry
       row.check:SetChecked(entry.isBank)
       row.label:SetText(rowLabel(entry))
-      if entry.key == selectedKey then row:LockHighlight() else row:UnlockHighlight() end
+      row.selected:SetShown(entry.key == selectedKey)
       row:Show()
     else
       row:Hide()
@@ -454,42 +460,76 @@ local function itemName(entry)
   return name
 end
 
-local function chooseFor(entry, choice)
-  ns.Items.SetChoice(ns.db, entry.itemID, choice or nil)
-  changed()
-end
-
--- Click on an item: Follow item types / Always send to <alt> / Never send.
-local function openItemMenu(row)
-  local entry = row.entry
-  if not entry then return end
-  local db = ns.db
+-- The choices for an item, in order: follow item types, always to each bank alt, never.
+local function itemChoices(db)
   local options = { { label = "Follow item types", value = false } }
   for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
     options[#options + 1] = { label = "Always send to " .. db.mules[key].name, value = key }
   end
   options[#options + 1] = { label = "Never send", value = "never" }
-  local current = ns.Items.Choice(db, entry.itemID) or false
+  return options
+end
 
-  if MenuUtil and MenuUtil.CreateContextMenu then
-    MenuUtil.CreateContextMenu(row, function(_, root)
-      root:CreateTitle(entry.name or ("item " .. entry.itemID))
-      for _, option in ipairs(options) do
-        root:CreateRadio(option.label,
-          function(value) return value == current end,
-          ns.Safely(function(value) chooseFor(entry, value) end),
-          option.value)
-      end
-    end)
-    return
-  end
-  -- No menu API on this client: each click moves to the next choice.
+local function describeChoice(db, itemID)
+  local choice = ns.Items.Choice(db, itemID)
+  if choice == "never" then return "will never be sent" end
+  if choice then return "always goes to " .. db.mules[choice].name end
+  return "follows the item types again"
+end
+
+-- Every change is confirmed in chat (one line, answering the player's own click).
+local function chooseFor(itemID, choice, label)
+  ns.Items.SetChoice(ns.db, itemID, choice or nil)
+  ns.Print("%s %s.", label or ns.ItemLabel(itemID), describeChoice(ns.db, itemID))
+  changed()
+end
+
+-- Step to the next (or previous) choice without a menu.
+local function cycleChoice(entry, step)
+  local db = ns.db
+  local options = itemChoices(db)
+  local current = ns.Items.Choice(db, entry.itemID) or false
+  local index = 1
   for i, option in ipairs(options) do
-    if option.value == current then
-      chooseFor(entry, options[i % #options + 1].value)
-      return
-    end
+    if option.value == current then index = i end
   end
+  local nextIndex = (index - 1 + step) % #options + 1
+  chooseFor(entry.itemID, options[nextIndex].value, entry.link or entry.name)
+end
+
+-- An item dropped on the list always goes to the bank alt selected on the Bank alts
+-- tab (or the only one there is).
+local function dropOnItemList()
+  local itemID = ns.Widgets.TakeCursorItem()
+  if not itemID then return end
+  local db = ns.db
+  local target = ns.Mules.IsActive(db, selectedKey) and selectedKey or ns.Mules.ActiveKeys(db)[1]
+  if not target then
+    return ns.Print("Tick a bank alt on the Bank alts tab first.")
+  end
+  chooseFor(itemID, target)
+end
+
+-- Left-click: menu of choices. Right-click (or no menu on this client): next choice.
+-- Holding an item: drop it here.
+local function onItemClick(row, button)
+  if CursorHasItem() then return dropOnItemList() end
+  local entry = row.entry
+  if not entry then return end
+  if button == "RightButton" or not (MenuUtil and MenuUtil.CreateContextMenu) then
+    return cycleChoice(entry, 1)
+  end
+  local db = ns.db
+  local current = ns.Items.Choice(db, entry.itemID) or false
+  MenuUtil.CreateContextMenu(row, function(_, root)
+    root:CreateTitle(entry.name or ("item " .. entry.itemID))
+    for _, option in ipairs(itemChoices(db)) do
+      root:CreateRadio(option.label,
+        function(value) return value == current end,
+        ns.Safely(function(value) chooseFor(entry.itemID, value, entry.link or entry.name) end),
+        option.value)
+    end
+  end)
 end
 
 local function buildItemsTab(pane)
@@ -499,7 +539,9 @@ local function buildItemsTab(pane)
     itemOffset = 0
     Config.Refresh()
   end))
-  text(pane, "Click an item to choose where it goes.", "GameFontDisableSmall", LEFT + 240, -8)
+  local hint = text(pane, "Click an item to choose where it goes (right-click: next choice). "
+    .. "Drop an item from your bags here to always send it.", "GameFontDisableSmall", LEFT + 240, -4)
+  hint:SetWidth(WIDTH - LEFT - 240 - 14)
   text(pane, "Item", "GameFontNormalSmall", LEFT + 30, -32)
   text(pane, "In bags", "GameFontNormalSmall", LEFT + 330, -32)
   text(pane, "Goes to", "GameFontNormalSmall", LEFT + 400, -32)
@@ -509,7 +551,7 @@ local function buildItemsTab(pane)
     local row = CreateFrame("Button", nil, pane)
     row:SetSize(WIDTH - 2 * LEFT, ITEM_ROW_HEIGHT - 2)
     row:SetPoint("TOPLEFT", LEFT, -48 - (i - 1) * ITEM_ROW_HEIGHT)
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    row:SetHighlightTexture("Interface\\Buttons\\UI-Listbox-Highlight2", "ADD")
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(22, 22)
     row.icon:SetPoint("LEFT", 2, 0)
@@ -525,13 +567,18 @@ local function buildItemsTab(pane)
     row.dest:SetPoint("LEFT", 400, 0)
     row.dest:SetPoint("RIGHT", -4, 0)
     row.dest:SetJustifyH("LEFT")
-    row:SetScript("OnClick", ns.Safely(openItemMenu))
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    row:SetScript("OnClick", ns.Safely(onItemClick))
+    row:SetScript("OnReceiveDrag", ns.Safely(dropOnItemList))
     row:SetScript("OnEnter", ns.Safely(function(self)
-      ns.Widgets.ShowItemTooltip(self, self.entry.itemID, "Click to choose where it goes")
+      ns.Widgets.ShowItemTooltip(self, self.entry.itemID, "Click: choose where it goes\nRight-click: next choice")
     end))
     row:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
     ui.itemRows[i] = row
   end
+  pane:EnableMouse(true)
+  pane:SetScript("OnReceiveDrag", ns.Safely(dropOnItemList))
+  pane:SetScript("OnMouseUp", ns.Safely(dropOnItemList))
   pane:EnableMouseWheel(true)
   pane:SetScript("OnMouseWheel", ns.Safely(function(_, delta)
     itemOffset = math.max(0, itemOffset - delta * 3)
@@ -646,13 +693,19 @@ function Config.Create()
   frame = CreateFrame("Frame", "HamalConfig", UIParent, "BasicFrameTemplateWithInset")
   frame:SetSize(WIDTH, HEIGHT)
   frame:SetPoint("CENTER")
-  frame:SetFrameStrata("DIALOG")
+  -- Below DIALOG, so the game's menus and confirmation popups always open on top of it.
+  frame:SetFrameStrata("HIGH")
   frame:SetMovable(true)
   frame:SetClampedToScreen(true)
   frame:EnableMouse(true)
   frame:RegisterForDrag("LeftButton")
   frame:SetScript("OnDragStart", ns.Safely(function(self) self:StartMoving() end))
-  frame:SetScript("OnDragStop", ns.Safely(function(self) self:StopMovingOrSizing() end))
+  frame:SetScript("OnDragStop", ns.Safely(function(self)
+    self:StopMovingOrSizing()
+    -- Remember where the player put it.
+    local point, _, relativePoint, x, y = self:GetPoint()
+    if point then ns.db.window = { point = point, relativePoint = relativePoint, x = x, y = y } end
+  end))
   frame:Hide()
   table.insert(UISpecialFrames, "HamalConfig") -- Esc closes it
 
@@ -701,7 +754,7 @@ function Config.ShowTab(key)
     pane:SetShown(k == key)
   end
   for k, b in pairs(tabButtons) do
-    b:SetEnabled(k ~= key) -- the open tab's button is greyed out
+    if k == key then b:LockHighlight() else b:UnlockHighlight() end -- the open tab glows
   end
   local itemsOpen = key == "items" and frame:IsShown()
   -- Item-info events are only worth hearing while the Items tab is on screen.
@@ -713,12 +766,29 @@ function Config.ShowTab(key)
   Config.Refresh()
 end
 
+-- Where the player last put the window; otherwise next to the mailbox panel, so it
+-- doesn't cover it, or in the middle of the screen.
+local function placeWindow()
+  if frame:IsShown() then return end
+  frame:ClearAllPoints()
+  local saved = ns.db.window
+  local panel = ns.UI and ns.UI.panel
+  if saved and saved.point then
+    frame:SetPoint(saved.point, UIParent, saved.relativePoint or saved.point, saved.x or 0, saved.y or 0)
+  elseif panel and panel:IsVisible() then
+    frame:SetPoint("TOPLEFT", panel, "TOPRIGHT", 8, 0)
+  else
+    frame:SetPoint("CENTER")
+  end
+end
+
 function Config.Open(key, tab)
   Config.Create()
   if key and ns.db.mules[key] then
     selectedKey = key
     tab = tab or "alts"
   end
+  placeWindow()
   frame:Show()
   Config.ShowTab(tab or currentTab)
 end
@@ -728,6 +798,7 @@ function Config.Toggle()
   if frame:IsShown() then
     frame:Hide()
   else
+    placeWindow()
     frame:Show()
     Config.ShowTab(currentTab)
   end

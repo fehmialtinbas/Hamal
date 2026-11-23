@@ -19,6 +19,9 @@ Categories.list = {
   { key = "engineering", label = "Parts, explosives & devices",
     match = { { TRADEGOODS, 1 }, { TRADEGOODS, 2 }, { TRADEGOODS, 3 } } },
   { key = "tradegoods",  label = "All trade goods",              match = { { TRADEGOODS } } },
+  -- Anything the game marks "Crafting Reagent" (e.g. Lucky Charm). Matched by that flag
+  -- only, never by the Reagent class, so class reagents like Flash Powder stay put.
+  { key = "reagents",    label = "Other crafting reagents",      match = {}, craftingReagent = true },
   { key = "gems",        label = "Gems",                         match = { { GEM } } },
   { key = "recipes",     label = "Recipes",                      match = { { RECIPE } } },
   { key = "potions",     label = "Potions, elixirs & flasks",
@@ -43,6 +46,7 @@ function Categories.Matches(key, item)
   local def = Categories.byKey[key]
   if not def or not item then return false end
   if def.minQuality and (item.quality or 0) < def.minQuality then return false end
+  if def.craftingReagent and item.isCraftingReagent then return true end
   for _, m in ipairs(def.match) do
     if item.classID == m[1] and (m[2] == nil or item.subclassID == m[2]) then
       return true

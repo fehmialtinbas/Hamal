@@ -34,6 +34,7 @@ function Items.Destination(db, entry, keys)
   if entry.isBound then return nil, "bound" end
   local key, reason = ns.Rules.Resolve({
     itemID = entry.itemID, classID = entry.classID, subclassID = entry.subclassID, quality = entry.quality,
+    isCraftingReagent = entry.isCraftingReagent,
   }, db, keys)
   if key then return key, reason end
   return nil, "none"
@@ -56,6 +57,7 @@ function Items.Collect(db)
     e.count = e.count + item.count
     e.inBags = true
     e.classID, e.subclassID, e.quality = item.classID, item.subclassID, item.quality
+    e.isCraftingReagent = item.isCraftingReagent
     e.name, e.link, e.icon = item.name, item.link, item.icon
     -- A bind-on-equip item counts as bound only when every stack of it is.
     if item.isBound then

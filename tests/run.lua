@@ -13,5 +13,6 @@ require("spec_robustness")
 require("spec_standalone")
 require("spec_quiet")
 require("spec_stacking")
+require("spec_ingame")
 
 os.exit(T.report() and 0 or 1)

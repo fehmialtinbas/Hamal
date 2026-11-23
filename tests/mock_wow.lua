@@ -76,10 +76,10 @@ function Frame:Enable() self.enabled = true end
 function Frame:Disable() self.enabled = false end
 function Frame:IsEnabled() return self.enabled end
 function Frame:CreateFontString() return Mock.newFrame("FontString", nil, self) end
-function Frame:Click()
+function Frame:Click(button)
   if not self.enabled then return end
   if self.objType == "CheckButton" then self.checked = not self.checked end
-  fireScript(self, "OnClick", "LeftButton")
+  fireScript(self, "OnClick", button or "LeftButton")
 end
 
 function Mock.newFrame(objType, name, parent)
@@ -145,7 +145,8 @@ function World:installGlobals()
   _G.ATTACHMENTS_MAX_SEND = 12
   _G.Enum = {
     BagIndex = { ReagentBag = 5 },
-    GameRule = { HardcoreRuleset = 10, PvPRuleset = 213, RPRuleset = 214 },
+    -- A test can take the game-rule list away (w.noGameRules) to see Hamal stay safe.
+    GameRule = not w.noGameRules and { HardcoreRuleset = 10, PvPRuleset = 213, RPRuleset = 214 } or nil,
     PlayerInteractionType = { MailInfo = 17 },
   }
   _G.unpack = unpack -- the game's Lua 5.1 has it as a global
@@ -186,10 +187,13 @@ function World:installGlobals()
       if not d then return nil end
       return id, nil, nil, nil, 100000 + id, d.classID, d.subclassID
     end,
+    -- name, link, quality, level, minLevel, type, subType, stackCount, equipLoc, texture,
+    -- sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent
     GetItemInfo = function(id)
       local d = w.items[id]
       if not d then return nil end
-      return d.name, "[" .. d.name .. "]"
+      return d.name, "[" .. d.name .. "]", d.quality, 1, 1, nil, nil, d.stack, "", 100000 + id,
+        0, d.classID, d.subclassID, 0, 0, nil, d.reagent == true
     end,
   }
 
@@ -438,6 +442,12 @@ end
 function World:Click(button)
   self.hardware = true
   button:Click()
+  self.hardware = false
+end
+
+function World:RightClick(button)
+  self.hardware = true
+  button:Click("RightButton")
   self.hardware = false
 end
 

@@ -12,15 +12,30 @@ local function realmList(db)
   return db.characters[realm]
 end
 
--- Forever has one realm per ruleset (PvE, PvP, RP, ...) and mail stays inside a realm.
+local function known(realm)
+  return realm ~= nil and realm ~= ""
+end
+
+-- Forever has one realm per ruleset per region (PvE, PvP, RP, ...) and mail stays
+-- inside a realm. GetRealmName() can come back empty there, so on Forever the ruleset
+-- is the realm's identity. Returns nil when the realm can't be told; nothing is
+-- mailed then, because an unknown realm must never count as "the same realm".
 function Characters.CurrentRealm()
-  return GetRealmName()
+  if ns.IsForever then
+    local ruleset = Characters.Ruleset()
+    if ruleset then return ruleset end
+  end
+  local name = GetRealmName and GetRealmName()
+  if known(name) then return name end
+  return nil
 end
 
 function Characters.Ruleset()
   local rules = C_GameRules
   local gameRule = Enum and Enum.GameRule
   if not (rules and rules.IsGameRuleActive and gameRule) then return nil end
+  -- Without these the PvP and PvE realms would look alike: better not to know.
+  if gameRule.PvPRuleset == nil or gameRule.RPRuleset == nil then return nil end
   local function on(rule) return rule ~= nil and rules.IsGameRuleActive(rule) end
   if on(gameRule.HardcoreRuleset) then return "Hardcore" end
   local pvp, rp = on(gameRule.PvPRuleset), on(gameRule.RPRuleset)
@@ -44,8 +59,9 @@ function Characters.Place(db, key)
   local info = Characters.Entry(db, key)
   if not info then return "manual" end
   if info.hidden then return "hidden" end
-  if not info.realm then return "unknown" end
-  if info.realm == Characters.CurrentRealm() then return "here" end
+  local here = Characters.CurrentRealm()
+  if not known(info.realm) or not known(here) then return "unknown" end
+  if info.realm == here then return "here" end
   return "other"
 end
 
@@ -86,6 +102,15 @@ function Characters.DropImported(db)
   local list = realmList(db)
   for name, info in pairs(list) do
     if info.imported then list[name] = nil end
+  end
+end
+
+-- Earlier builds stored GetRealmName() as the realm, which is empty on Forever. Such
+-- entries get their ruleset as realm, or no realm (not mailed until they log in again).
+function Characters.RepairRealms(db)
+  if not ns.IsForever then return end
+  for _, info in pairs(realmList(db)) do
+    if not known(info.realm) then info.realm = info.ruleset end
   end
 end
 
@@ -133,7 +158,13 @@ end
 ns.On("PLAYER_LOGIN", function()
   if not ns.db then return end
   Characters.DropImported(ns.db)
+  Characters.RepairRealms(ns.db)
   Characters.Register(ns.db)
+end)
+
+-- Game rules may settle only after login; register again once the world is loaded.
+ns.On("PLAYER_ENTERING_WORLD", function()
+  if ns.db then Characters.Register(ns.db) end
 end)
 
 ns.On("PLAYER_LEVEL_UP", function(level)

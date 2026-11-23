@@ -122,7 +122,7 @@ local function statusText(keys, session, iAmBank)
     return ("Combining stacks for %s..."):format(ns.db.mules[stacking.key].name)
   end
   if not session then
-    return "Click a bank alt, or type its name in To:."
+    return "Click a bank alt, or type\nits name in To:"
   end
   if session.sending then
     return ("Sending to %s..."):format(session.name)
