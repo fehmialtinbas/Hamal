@@ -1,25 +1,23 @@
 local T = require("harness")
 local F = require("fixtures")
 
--- The account from the WTF folder, shaped like real data: two characters on the PvP
--- realm, two on the PvE realm. Main Character (logged in) is on PvP.
+-- Shaped like the real account: a bank alt and a retired rogue on the PvP realm,
+-- a rogue and a bank alt on the PvE realm, each seen by Hamal at an earlier login.
+-- Main Character (logged in now) is on PvP.
 local function twoRealms(w)
-  w.brotherBags = {
-    forever = {
-      ["Main Character"] = { class = "ROGUE", level = 24, faction = false },
-      ["Pvp Bank"] = { class = "WARRIOR", level = 1, faction = false },
-      ["Old Rogue"] = { class = "ROGUE", level = 22, faction = false },
-      ["Pve Bank"] = { class = "WARRIOR", level = 1, faction = false },
+  local function char(class, level, realm)
+    return { class = class, level = level, faction = "Horde", realm = realm }
+  end
+  w.savedDB = {
+    characters = {
+      forever = {
+        ["Pvp Bank"] = char("WARRIOR", 1, "PvP"),
+        ["Retired Rogue"] = char("ROGUE", 30, "PvP"),
+        ["Old Rogue"] = char("ROGUE", 22, "PvE"),
+        ["Pve Bank"] = char("WARRIOR", 1, "PvE"),
+      },
     },
   }
-end
-
--- What Hamal would know once each character has logged in with it once.
-local function placeOnRealms(ns)
-  local chars = ns.db.characters.forever
-  chars["Pvp Bank"].realm = "PvP"
-  chars["Old Rogue"].realm = "PvE"
-  chars["Pve Bank"].realm = "PvE"
 end
 
 local function names(entries)
@@ -53,17 +51,14 @@ end)
 T.describe("Realms", function()
   T.it("list this realm first and keep other realms behind a switch", function()
     local _, ns = F.setup(twoRealms)
-    T.eq(names(ns.Characters.List(ns.db)), "Main Character,Old Rogue,Pve Bank,Pvp Bank", "nothing placed yet")
-    placeOnRealms(ns)
     local entries, leftOut = ns.Characters.List(ns.db)
-    T.eq(names(entries), "Main Character,Pvp Bank")
+    T.eq(names(entries), "Main Character,Pvp Bank,Retired Rogue")
     T.eq(leftOut, 2)
-    T.eq(names(ns.Characters.List(ns.db, true)), "Main Character,Pvp Bank,Old Rogue,Pve Bank")
+    T.eq(names(ns.Characters.List(ns.db, true)), "Main Character,Pvp Bank,Retired Rogue,Old Rogue,Pve Bank")
   end)
 
   T.it("never mail a bank alt on another realm", function()
     local w, ns = F.setup(twoRealms)
-    placeOnRealms(ns)
     local pve = ns.Mules.Add(ns.db, "Pve Bank")
     local pvp = ns.Mules.Add(ns.db, "Pvp Bank")
     ns.Mules.ToggleCategory(ns.db, pve, "cloth")
@@ -88,17 +83,17 @@ T.describe("Realms", function()
         if r:IsShown() and r.entry.name == name then return r end
       end
     end
-    w:Click(row("Old Rogue"))
+    w:Click(row("Retired Rogue"))
     T.eq(ui.hideButton:GetText(), "Hide")
     w:Click(ui.hideButton)
-    T.eq(row("Old Rogue"), nil, "gone from the list")
-    T.truthy(ui.showAllCheck.label:GetText():find("%(1%)"), "counted behind the switch")
+    T.eq(row("Retired Rogue"), nil, "gone from the list")
+    T.truthy(ui.showAllCheck.label:GetText():find("%(3%)"), "counted behind the switch with the PvE two")
     w:Click(ui.showAllCheck)
-    T.truthy(row("Old Rogue"), "back with the switch on")
-    w:Click(row("Old Rogue"))
+    T.truthy(row("Retired Rogue"), "back with the switch on")
+    w:Click(row("Retired Rogue"))
     T.eq(ui.hideButton:GetText(), "Show")
     w:Click(ui.hideButton)
-    T.eq(ns.Characters.Place(ns.db, "old rogue"), "unknown", "shown again")
+    T.eq(ns.Characters.Place(ns.db, "retired rogue"), "here", "shown again")
   end)
 
   T.it("send nothing to a hidden bank alt and unhide a character that logs in", function()

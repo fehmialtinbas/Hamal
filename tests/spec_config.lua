@@ -1,17 +1,21 @@
 local T = require("harness")
 local F = require("fixtures")
 
--- Bagnon data for this account: two rogues, two level-1 bank characters, a guild
--- bank and an Alliance character that must not show up.
+-- Hamal's saved data after earlier logins on this account: two level-1 bank
+-- characters, another rogue, and an Alliance character that must not show up.
+-- Main Character (logged in now) registers itself.
 local function withAccount(w)
-  w.brotherBags = {
-    forever = {
-      ["Main Character"] = { class = "ROGUE", level = 22, faction = false },
-      ["Cloth Bank"] = { class = "WARRIOR", level = 1, faction = false },
-      ["Herb Bank"] = { class = "WARRIOR", level = 1, faction = false },
-      ["Other Rogue"] = { class = "ROGUE", level = 24, faction = false },
-      ["Some Guild*"] = { faction = false },
-      ["Ally Mage"] = { class = "MAGE", level = 10, faction = true },
+  local function char(class, level, faction)
+    return { class = class, level = level, faction = faction, realm = "PvP" }
+  end
+  w.savedDB = {
+    characters = {
+      forever = {
+        ["Cloth Bank"] = char("WARRIOR", 1, "Horde"),
+        ["Herb Bank"] = char("WARRIOR", 1, "Horde"),
+        ["Other Rogue"] = char("ROGUE", 24, "Horde"),
+        ["Ally Mage"] = char("MAGE", 10, "Alliance"),
+      },
     },
   }
 end
@@ -41,7 +45,7 @@ local function itemRow(ui, itemID)
 end
 
 T.describe("Characters", function()
-  T.it("register themselves and come in from Bagnon", function()
+  T.it("are remembered from earlier logins", function()
     local _, ns = F.setup(withAccount)
     local names = {}
     for _, entry in ipairs(ns.Characters.List(ns.db)) do
@@ -68,9 +72,8 @@ T.describe("Settings: bank alts tab", function()
     T.truthy(ns.Mules.IsEnabled(ns.db, "cloth bank"), "now a bank alt")
     T.eq(ui.header:GetText(), "Cloth Bank")
     T.truthy(categoryCheck(ui, "cloth"):IsShown(), "item types shown")
-    T.truthy(ui.subHeader:GetText():find("gets nothing until you log in on it"),
-      "imported from Bagnon, not confirmed yet: says it gets nothing")
-    T.eq(ns.Mules.IsActive(ns.db, "cloth bank"), false, "and really gets nothing")
+    T.truthy(ui.subHeader:GetText():find("PvP realm"), "shows its realm")
+    T.truthy(ns.Mules.IsActive(ns.db, "cloth bank"), "logged in here before, so it can be mailed")
   end)
 
   T.it("gives each bank alt its own item types", function()

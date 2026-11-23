@@ -12,8 +12,8 @@ end
 
 T.describe("Safety", function()
   T.it("never mails a character it has not seen log in on this realm", function()
-    -- Bagnon knows the name, but Hamal can't tell which realm it is on yet: on this
-    -- realm the same name could belong to a stranger.
+    -- Another addon (Bagnon here) knows the name, but Hamal ignores other addons:
+    -- without its own login record the name could belong to a stranger.
     local w, ns = F.setup(function(w)
       w.brotherBags = { forever = { ["Unplaced Bank"] = { class = "WARRIOR", level = 1, faction = false } } }
     end)
@@ -23,7 +23,7 @@ T.describe("Safety", function()
     w:OpenMailbox()
     T.eq(#ns.Mailer.PendingAlts(), 0, "not offered")
     T.eq(ns.Mailer.Start(key), false, "can't be started")
-    T.truthy(w:Printed("Log in on Unplaced Bank once"), "says what to do")
+    T.truthy(w:Printed("Unplaced Bank is not one of your characters"), "says why")
     w:Type("Unplaced Bank")
     w:Flush()
     T.eq(ns.Mailer.AttachedCount(), 0, "typing the name fills nothing")

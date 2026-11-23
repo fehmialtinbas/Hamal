@@ -243,14 +243,14 @@ local function buildAltsTab(pane)
   end)
 
   local listBottom = -24 - CHAR_ROWS * (CHECK + 2)
-  ui.emptyChars = text(pane, "No characters yet.", "GameFontDisableSmall", LEFT, -28)
+  ui.emptyChars = text(pane, "Log in on your bank alts once\nand they show up here.", "GameFontDisableSmall", LEFT, -28)
   ui.showAllCheck = checkBox(pane, LEFT, listBottom - 2, LEFT_WIDTH - CHECK - 4, function(self)
     showAllCharacters = self:GetChecked() and true or false
     charOffset = 0
     Config.Refresh()
   end)
   local hint = text(pane, "Hamal only mails your own characters on the realm you are on, after you have "
-    .. "logged in on them once. A \"?\" means: not confirmed yet.", "GameFontDisableSmall", LEFT, listBottom - 28)
+    .. "logged in on them once with Hamal.", "GameFontDisableSmall", LEFT, listBottom - 28)
   hint:SetWidth(LEFT_WIDTH)
 
   ui.header = text(pane, "", "GameFontNormalLarge", RIGHT, -4)

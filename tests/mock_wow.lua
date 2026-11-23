@@ -156,7 +156,7 @@ function World:installGlobals()
     return function(err) table.insert(w.errors, err) end
   end or nil
   _G.SlashCmdList = {}
-  _G.HamalDB = nil
+  _G.HamalDB = w.savedDB -- Hamal's saved data from earlier sessions, if a test gives some
   _G.GetMoney = function() return w.money end
   _G.GetCoinTextureString = function(copper) return copper .. "c" end
   _G.SetSendMailMoney = function() end

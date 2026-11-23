@@ -17,7 +17,8 @@ function ns.PlayerName()
   return (UnitName("player"))
 end
 
--- Same realm key Bagnon uses, so its character list can be imported as is.
+-- Where this account's characters are filed in Hamal's saved data. Forever keeps
+-- them in one list (each entry records its real realm, see Characters.lua).
 function ns.RealmKey()
   if ns.IsForever then return "forever" end
   return (GetNormalizedRealmName and GetNormalizedRealmName()) or GetRealmName()

@@ -1,8 +1,8 @@
 local _, ns = ...
 
 -- Remembers this account's characters so the settings window can list them.
--- Each character adds itself when it logs in; characters Bagnon already knows are
--- imported so they show up before you have logged in on them with Hamal.
+-- Each character adds itself when it logs in with Hamal. Hamal reads no other
+-- addon's data: it works the same whether or not anything else is installed.
 local Characters = {}
 ns.Characters = Characters
 
@@ -52,8 +52,8 @@ end
 -- The safety rule: Hamal mails a character only when it is certainly yours and on
 -- this realm. That means it logged in on this account with Hamal, on the realm you
 -- are on now, and you haven't hidden it. A name on another realm can belong to a
--- stranger here, so characters on other realms, characters not placed yet (e.g.
--- imported from Bagnon), hidden ones and typed-in names all get nothing.
+-- stranger here, so characters on other realms, characters not placed yet, hidden
+-- ones and typed-in names all get nothing.
 function Characters.CanMail(db, key)
   return Characters.Place(db, key) == "here"
 end
@@ -79,23 +79,14 @@ function Characters.Register(db)
   list[name] = entry
 end
 
--- Bagnon (BagBrother) keeps BrotherBags[realm][name] = { class, level, faction = isAlliance, ... }.
-function Characters.ImportBagnon(db)
-  local realmChars = type(BrotherBags) == "table" and BrotherBags[ns.RealmKey()]
-  if type(realmChars) ~= "table" then return 0 end
+-- Earlier builds copied characters from Bagnon's data. Those entries were never
+-- confirmed by a login with Hamal, so they are dropped (unless the character has
+-- since logged in, which clears the flag).
+function Characters.DropImported(db)
   local list = realmList(db)
-  local added = 0
-  for name, info in pairs(realmChars) do
-    -- Guild banks are stored as "Guild Name*"; characters always have a class.
-    if type(name) == "string" and type(info) == "table" and info.class
-      and not name:find("%*$") and not list[name] then
-      local faction
-      if info.faction == true then faction = "Alliance" elseif info.faction == false then faction = "Horde" end
-      list[name] = { class = info.class, level = info.level, faction = faction, imported = true }
-      added = added + 1
-    end
+  for name, info in pairs(list) do
+    if info.imported then list[name] = nil end
   end
-  return added
 end
 
 local PLACE_ORDER = { here = 1, manual = 2, unknown = 3, other = 4, hidden = 5 }
@@ -141,8 +132,8 @@ end
 
 ns.On("PLAYER_LOGIN", function()
   if not ns.db then return end
+  Characters.DropImported(ns.db)
   Characters.Register(ns.db)
-  Characters.ImportBagnon(ns.db)
 end)
 
 ns.On("PLAYER_LEVEL_UP", function(level)

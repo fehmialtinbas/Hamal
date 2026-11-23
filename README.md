@@ -7,7 +7,8 @@ Open a mailbox and type your bank alt's name in **To:** (or click it in the Hama
 the mail with everything in your bags that belongs to that alt. One click on **Send** mails it all,
 12 items per mail, batch after batch.
 
-Built for **World of Warcraft: Forever** (1.60.1, interface 16001).
+Built for **World of Warcraft: Forever** (1.60.1, interface 16001). Hamal stands on its own: no
+libraries, no other addons needed, and it reads no other addon's data.
 
 > Status: early. The mailing flow is covered by offline tests against a fake client but has not
 > been tried in the game yet.
@@ -18,8 +19,8 @@ Type `/hamal` (or use the minimap addon menu, or **Settings** in the mailbox pan
 
 **Bank alts tab**
 
-- Your characters are listed on the left. Each one appears after you log in on it once; if you use
-  Bagnon, the characters it knows are imported right away.
+- Your characters are listed on the left. Each one appears after you log in on it once with Hamal
+  installed, so log in on your bank alts once first.
 - Tick the ones that are bank alts. You can have as many as you like.
 - Select a bank alt and tick the **item types** it gets: cloth for one, herbs and leather for another, and so on.
   A grey name next to a type shows which other alt already takes it.
@@ -34,7 +35,6 @@ cross realms. Each character records its realm and ruleset when you log in on it
   **Show other realms and hidden**;
 - items only go to bank alts on your current realm (a cloth alt on another realm is skipped and the
   next matching alt on this realm gets the cloth);
-- characters Bagnon imported but you have not logged in on yet show a `?` and get nothing until they do;
 - **Hide** a character you no longer play: it leaves the list and gets no mail. Logging in on it
   shows it again.
 
