@@ -31,6 +31,7 @@ local frame
 local panes, tabButtons = {}, {}
 local currentTab = "alts"
 local selectedKey -- normalized name of the character selected on the Bank alts tab
+local showAllCharacters = false -- also list characters on other realms and hidden ones
 local charOffset, itemOffset = 0, 0
 local itemIconsY = 0
 local ui = {} -- widgets, also exposed as Config.widgets
@@ -164,8 +165,18 @@ local function addByName()
   changed()
 end
 
+local function toggleHidden()
+  if not selectedKey then return end
+  local info = ns.Characters.Entry(ns.db, selectedKey)
+  if not info then return end
+  ns.Characters.SetHidden(ns.db, selectedKey, not info.hidden)
+  local session = ns.Mailer.session
+  if session and session.key == selectedKey then ns.Mailer.Cancel() end
+  changed()
+end
+
 local function saveAlias()
-  if not ns.Mules.IsActive(ns.db, selectedKey) then return end
+  if not ns.Mules.IsEnabled(ns.db, selectedKey) then return end
   local ok, err = ns.Mules.SetOnlyAlias(ns.db, selectedKey, ui.aliasBox:GetText())
   if not ok then ns.Print(err) end
   ui.aliasBox:ClearFocus()
@@ -173,13 +184,13 @@ local function saveAlias()
 end
 
 local function toggleCategory(check)
-  if not ns.Mules.IsActive(ns.db, selectedKey) then return end
+  if not ns.Mules.IsEnabled(ns.db, selectedKey) then return end
   ns.db.mules[selectedKey].categories[check.category] = check:GetChecked() and true or nil
   changed()
 end
 
 local function addItem(itemID)
-  if not ns.Mules.IsActive(ns.db, selectedKey) then return end
+  if not ns.Mules.IsEnabled(ns.db, selectedKey) then return end
   ns.Items.SetChoice(ns.db, itemID, selectedKey)
   changed()
 end
@@ -242,17 +253,27 @@ local function buildAltsTab(pane)
 
   local listBottom = -24 - CHAR_ROWS * (CHECK + 2)
   ui.emptyChars = text(pane, "No characters yet.", "GameFontDisableSmall", LEFT, -28)
-  local hint = text(pane, "Each character shows up here after you log in on it once.", "GameFontDisableSmall",
-    LEFT, listBottom - 4)
+  ui.showAllCheck = checkBox(pane, LEFT, listBottom - 2, LEFT_WIDTH - CHECK - 4, function(self)
+    showAllCharacters = self:GetChecked() and true or false
+    charOffset = 0
+    Config.Refresh()
+  end)
+  local hint = text(pane, "A character is placed on its realm when you log in on it once.", "GameFontDisableSmall",
+    LEFT, listBottom - 28)
   hint:SetWidth(LEFT_WIDTH)
-  text(pane, "Bank alt on another account", "GameFontHighlightSmall", LEFT, listBottom - 40)
-  ui.nameBox = inputBox(pane, LEFT_WIDTH - 12, LEFT, listBottom - 56)
+  text(pane, "Bank alt on another account", "GameFontHighlightSmall", LEFT, listBottom - 62)
+  ui.nameBox = inputBox(pane, LEFT_WIDTH - 12, LEFT, listBottom - 78)
   ui.nameBox:SetScript("OnEnterPressed", addByName)
-  ui.addButton = button(pane, "Add by name", LEFT_WIDTH, LEFT, listBottom - 82, addByName)
+  ui.addButton = button(pane, "Add by name", LEFT_WIDTH, LEFT, listBottom - 104, addByName)
 
   ui.header = text(pane, "", "GameFontNormalLarge", RIGHT, -4)
   ui.subHeader = text(pane, "", "GameFontDisableSmall", RIGHT, -26)
   ui.forgetButton = button(pane, "Forget", 90, WIDTH - 14 - 90, -2, confirmForget)
+  ui.hideButton = button(pane, "Hide", 90, WIDTH - 14 - 184, -2, toggleHidden)
+  ui.hideButton:SetScript("OnEnter", function(self)
+    ns.Widgets.ShowTextTooltip(self, "Hide a character you no longer play. It gets no mail and leaves the list.")
+  end)
+  ui.hideButton:SetScript("OnLeave", ns.Widgets.HideTooltip)
   ui.notBank = text(pane, "", "GameFontHighlight", RIGHT, -56)
   ui.notBank:SetWidth(RIGHT_WIDTH)
 
@@ -293,10 +314,21 @@ local function findEntry(entries, key)
   end
 end
 
+local PLACE_TAGS = {
+  unknown = " |cff999999?|r",
+  hidden = " |cff999999(hidden)|r",
+}
+
 local function rowLabel(entry)
   local label = classColored(entry.name, entry.class)
   if entry.level then label = label .. (" |cff999999%d|r"):format(entry.level) end
-  if entry.isMe then label = label .. " |cff999999(you)|r" end
+  if entry.isMe then
+    label = label .. " |cff999999(you)|r"
+  elseif entry.place == "other" then
+    label = label .. (" |cffff9933%s|r"):format(entry.realm or "")
+  elseif PLACE_TAGS[entry.place] then
+    label = label .. PLACE_TAGS[entry.place]
+  end
   return label
 end
 
@@ -307,10 +339,26 @@ local function describe(entry, isBank)
   elseif entry.manual then
     parts[#parts + 1] = "Added by name"
   end
+  if entry.realm then parts[#parts + 1] = entry.realm .. " realm" end
+  if entry.place == "unknown" then parts[#parts + 1] = "realm not known yet" end
   if entry.isMe then
     parts[#parts + 1] = isBank and "this character: it won't mail itself" or "this character"
   end
   return table.concat(parts, " - ")
+end
+
+local function notBankText(selected)
+  if not selected then return "Log in on your characters once, or add a bank alt by name." end
+  if selected.place == "hidden" then
+    return ("%s is hidden. Press Show if you play it again."):format(selected.name)
+  end
+  local text = ("Tick the box next to %s to make it a bank alt."):format(selected.name)
+  if selected.place == "other" then
+    text = text .. ("\nIt is on the %s realm, so only characters there can mail it."):format(selected.realm)
+  elseif selected.place == "unknown" then
+    text = text .. "\nIf you no longer play it, press Hide."
+  end
+  return text
 end
 
 local function categoryLabel(db, def, checked)
@@ -331,7 +379,13 @@ local function categoryLabel(db, def, checked)
 end
 
 local function refreshAlts(db)
-  local entries = ns.Characters.List(db)
+  local entries, leftOut = ns.Characters.List(db, showAllCharacters)
+  ui.showAllCheck:SetChecked(showAllCharacters)
+  if showAllCharacters or leftOut == 0 then
+    ui.showAllCheck.label:SetText("Show other realms and hidden")
+  else
+    ui.showAllCheck.label:SetText(("Show other realms and hidden (%d)"):format(leftOut))
+  end
   charOffset = math.min(charOffset, math.max(0, #entries - CHAR_ROWS))
   if selectedKey and not findEntry(entries, selectedKey) then selectedKey = nil end
   if not selectedKey then
@@ -360,10 +414,12 @@ local function refreshAlts(db)
 
   local selected = findEntry(entries, selectedKey)
   local mule = selectedKey and db.mules[selectedKey]
-  local isBank = ns.Mules.IsActive(db, selectedKey)
+  local isBank = ns.Mules.IsEnabled(db, selectedKey) and not (selected and selected.place == "hidden")
   ui.header:SetText(selected and selected.name or "")
   ui.subHeader:SetText(selected and describe(selected, isBank) or "")
   ui.forgetButton:SetShown(mule ~= nil)
+  ui.hideButton:SetShown(selected ~= nil and not selected.isMe and not selected.manual)
+  ui.hideButton:SetText(selected and selected.place == "hidden" and "Show" or "Hide")
   for _, widget in ipairs(ui.bankWidgets) do
     widget:SetShown(isBank)
   end
@@ -379,11 +435,7 @@ local function refreshAlts(db)
     layoutIcons(panes.alts, ui.itemButtons, ns.SortedIDs(mule.items), RIGHT + ICON + 8, itemIconsY, removeItem, ui.itemMore)
   else
     layoutIcons(panes.alts, ui.itemButtons, {}, 0, 0, removeItem, ui.itemMore)
-    if selected then
-      ui.notBank:SetText(("Tick the box next to %s to make it a bank alt."):format(selected.name))
-    else
-      ui.notBank:SetText("Log in on your characters once, or add a bank alt by name.")
-    end
+    ui.notBank:SetText(notBankText(selected))
   end
 end
 

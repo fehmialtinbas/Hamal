@@ -28,6 +28,17 @@ Type `/hamal` (or use the minimap addon menu, or **Settings** in the mailbox pan
 - Unticking a bank alt keeps its rules for later; **Forget** deletes them.
 - A bank alt on another account can be added by name.
 
+**Realms and rulesets.** Forever has one realm per ruleset (PvE, PvP, RP, ...) and mail does not
+cross realms. Each character records its realm and ruleset when you log in on it, and then:
+
+- the list shows the characters on your current realm; characters on other realms sit behind
+  **Show other realms and hidden**;
+- items only go to bank alts on your current realm (a cloth alt on another realm is skipped and the
+  next matching alt on this realm gets the cloth);
+- characters Bagnon imported but you have not logged in on yet show a `?` until they do;
+- **Hide** a character you no longer play: it leaves the list and gets no mail. Logging in on it
+  shows it again.
+
 **Items tab**
 
 Every item in your bags, every item your characters carried before, and every item with a rule,

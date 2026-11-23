@@ -113,6 +113,16 @@ function Mailer.Start(key)
     end
     Mailer.Cancel()
   end
+  if not ns.Mules.IsActive(db, key) then
+    local info = ns.Characters.Entry(db, key)
+    if info and info.realm and not info.hidden and mule and not mule.disabled then
+      ns.Print("%s is on the %s realm; mail can't reach it from %s.", mule.name, info.realm,
+        ns.Characters.CurrentRealm() or "here")
+    else
+      ns.Print("%s is switched off in Hamal's settings.", mule.name)
+    end
+    return false
+  end
   if ns.NormalizeName(ns.PlayerName()) == key then
     ns.Print("You are logged in as %s. Use another character to fill this bank.", mule.name)
     return false

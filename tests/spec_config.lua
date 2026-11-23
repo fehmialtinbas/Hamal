@@ -47,7 +47,7 @@ T.describe("Characters", function()
     for _, entry in ipairs(ns.Characters.List(ns.db)) do
       names[#names + 1] = entry.name .. (entry.isMe and "*" or "")
     end
-    T.eq(table.concat(names, ","), "Cloth Bank,Herb Bank,Main Character*,Other Rogue")
+    T.eq(table.concat(names, ","), "Main Character*,Cloth Bank,Herb Bank,Other Rogue", "you first, then by name")
     T.eq(ns.db.characters.forever["Main Character"].level, 22)
   end)
 

@@ -102,7 +102,7 @@ function Mock.new()
     frames = {}, timers = {}, bags = {}, bagSize = {}, items = {}, mail = {}, sent = {}, printed = {},
     cursor = nil, money = 100000, hardware = false, requireHardware = false, pending = false,
     failNext = false, playerName = "Main Character", playerClass = "ROGUE", playerLevel = 22,
-    playerFaction = "Horde",
+    playerFaction = "Horde", realmName = "PvP", gameRules = { [213] = true },
   }, World)
   Mock.world = w
   for bag = 0, 4 do w.bagSize[bag] = 16 end
@@ -122,7 +122,9 @@ function World:installGlobals()
   _G.UnitClass = function() return "Rogue", w.playerClass end
   _G.UnitLevel = function() return w.playerLevel end
   _G.UnitFactionGroup = function() return w.playerFaction end
-  _G.GetRealmName = function() return "Forever" end
+  -- One realm per ruleset, named after it (as AceDB profile keys show: "Name - PvP").
+  _G.GetRealmName = function() return w.realmName end
+  _G.C_GameRules = { IsGameRuleActive = function(rule) return w.gameRules[rule] == true end }
   _G.BrotherBags = w.brotherBags
   _G.RAID_CLASS_COLORS = {}
   _G.ITEM_QUALITY_COLORS = {}
@@ -141,7 +143,10 @@ function World:installGlobals()
   }
   _G.NUM_BAG_SLOTS = 4
   _G.ATTACHMENTS_MAX_SEND = 12
-  _G.Enum = { BagIndex = { ReagentBag = 5 } }
+  _G.Enum = {
+    BagIndex = { ReagentBag = 5 },
+    GameRule = { HardcoreRuleset = 10, PvPRuleset = 213, RPRuleset = 214 },
+  }
   _G.SlashCmdList = {}
   _G.HamalDB = nil
   _G.GetMoney = function() return w.money end

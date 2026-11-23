@@ -14,6 +14,7 @@ globals = {
 read_globals = {
   "ATTACHMENTS_MAX_SEND",
   "BrotherBags",
+  "C_GameRules",
   "GetNormalizedRealmName",
   "GetRealmName",
   "ITEM_QUALITY_COLORS",

@@ -13,19 +13,25 @@ function Mules.SortedKeys(db)
   return keys
 end
 
--- Bank alts that are switched on. An unticked bank alt keeps its rules but gets nothing.
+-- Ticked in the settings. An unticked bank alt keeps its rules but gets nothing.
+function Mules.IsEnabled(db, key)
+  local mule = key and db.mules[key]
+  return mule ~= nil and not mule.disabled
+end
+
+-- Enabled and reachable by mail from the character logged in (same realm, not hidden).
+function Mules.IsActive(db, key)
+  if not Mules.IsEnabled(db, key) then return false end
+  return not ns.Characters or ns.Characters.CanMail(db, key)
+end
+
 function Mules.ActiveKeys(db)
   local keys = {}
-  for key, mule in pairs(db.mules) do
-    if not mule.disabled then keys[#keys + 1] = key end
+  for key in pairs(db.mules) do
+    if Mules.IsActive(db, key) then keys[#keys + 1] = key end
   end
   table.sort(keys)
   return keys
-end
-
-function Mules.IsActive(db, key)
-  local mule = key and db.mules[key]
-  return mule ~= nil and not mule.disabled
 end
 
 function Mules.Add(db, name)
