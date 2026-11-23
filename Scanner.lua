@@ -78,7 +78,45 @@ function Scanner.Collect(db, targetKey)
   return out
 end
 
--- Stack counts for every active bank alt in one pass (for the mailbox panel).
+-- For every active bank alt, in one pass over the bags:
+--   stacks     stacks waiting for it now
+--   minStacks  stacks once partial stacks are combined (see Stacker.lua)
+function Scanner.Summary(db)
+  local keys = ns.Mules.ActiveKeys(db)
+  local summary, perItem = {}, {}
+  for _, key in ipairs(keys) do
+    summary[key] = { stacks = 0, minStacks = 0 }
+    perItem[key] = {}
+  end
+  Scanner.EachItem(function(item)
+    local key = ns.Rules.Resolve(item, db, keys)
+    if key then
+      summary[key].stacks = summary[key].stacks + 1
+      local totals = perItem[key][item.itemID]
+      if not totals then
+        totals = { count = 0, stacks = 0 }
+        perItem[key][item.itemID] = totals
+      end
+      totals.count = totals.count + item.count
+      totals.stacks = totals.stacks + 1
+    end
+  end)
+  for key, items in pairs(perItem) do
+    local min = 0
+    for itemID, totals in pairs(items) do
+      local max = ns.Stacker.MaxStack(itemID)
+      if max and max > 0 then
+        min = min + math.min(totals.stacks, math.ceil(totals.count / max))
+      else
+        min = min + totals.stacks
+      end
+    end
+    summary[key].minStacks = min
+  end
+  return summary
+end
+
+-- Stack counts for every active bank alt in one pass.
 function Scanner.CountAll(db)
   local keys = ns.Mules.ActiveKeys(db)
   local counts = {}

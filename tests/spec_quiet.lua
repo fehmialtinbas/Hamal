@@ -38,10 +38,10 @@ T.describe("Quiet and light", function()
     w:Fill(F.LINEN, 20, 20)
     w:OpenMailbox()
     local scans = 0
-    local countAll = ns.Scanner.CountAll
-    ns.Scanner.CountAll = function(...)
+    local eachItem = ns.Scanner.EachItem
+    ns.Scanner.EachItem = function(...)
       scans = scans + 1
-      return countAll(...)
+      return eachItem(...)
     end
     for _ = 1, 20 do w:Fire("BAG_UPDATE_DELAYED") end
     for _ = 1, 12 do w:Fire("MAIL_SEND_INFO_UPDATE") end

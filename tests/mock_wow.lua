@@ -176,6 +176,10 @@ function World:installGlobals()
   _G.C_Item = {
     -- Items the test defined count as cached; anything else would need the server.
     IsItemDataCachedByID = function(id) return w.items[id] ~= nil end,
+    GetItemMaxStackSizeByID = function(id)
+      local d = w.items[id]
+      return d and d.stack
+    end,
     RequestLoadItemDataByID = function() w.calls.request = w.calls.request + 1 end,
     GetItemInfoInstant = function(id)
       local d = w.items[id]
@@ -201,10 +205,38 @@ function World:installGlobals()
         quality = d.quality, hyperlink = "[" .. d.name .. "]", itemName = d.name, iconFileID = 100000 + it.itemID,
       }
     end,
-    -- The real item stays in its bag slot, locked, while it is on the cursor or attached.
+    -- Picking up: the item stays in its bag slot, locked, while it is on the cursor.
+    -- With an item on the cursor, clicking another stack of the same item merges them
+    -- (up to the stack size; the rest stays where it was). Both slots stay locked until
+    -- the "server" confirms the move a moment later.
     PickupContainerItem = function(bag, slot)
       local it = w.bags[bag] and w.bags[bag][slot]
-      if w.cursor or not it or it.locked then return end
+      local held = w.cursor
+      if held then
+        if it == held then
+          held.locked = false
+          w.cursor = nil
+          return
+        end
+        if not it or it.itemID ~= held.itemID or it.locked then return end
+        local room = w.items[it.itemID].stack - it.count
+        local moved = math.min(room, held.count)
+        if moved <= 0 then return end
+        it.count = it.count + moved
+        held.count = held.count - moved
+        if held.count == 0 then w.bags[held.bag][held.slot] = nil end
+        w.cursor = nil
+        it.locked, held.locked = true, held.count > 0
+        w.moves = (w.moves or 0) + 1
+        if not w.stuckLocks then
+          table.insert(w.timers, function()
+            it.locked, held.locked = false, false
+            w:Fire("BAG_UPDATE_DELAYED")
+          end)
+        end
+        return
+      end
+      if not it or it.locked then return end
       it.locked = true
       w.cursor = it
     end,
@@ -301,8 +333,20 @@ function World:installGlobals()
   _G.MailFrame.shown = false -- closed until OpenMailbox()
 end
 
-function World:DefineItem(id, name, classID, subclassID, quality)
-  self.items[id] = { name = name, classID = classID, subclassID = subclassID, quality = quality or 1 }
+function World:DefineItem(id, name, classID, subclassID, quality, stack)
+  self.items[id] = { name = name, classID = classID, subclassID = subclassID, quality = quality or 1, stack = stack or 20 }
+end
+
+-- How many separate stacks of an item, and their sizes, sorted.
+function World:StackSizes(itemID)
+  local sizes = {}
+  for _, slots in pairs(self.bags) do
+    for _, it in pairs(slots) do
+      if it.itemID == itemID then sizes[#sizes + 1] = it.count end
+    end
+  end
+  table.sort(sizes)
+  return table.concat(sizes, ",")
 end
 
 function World:Put(bag, slot, itemID, count, opts)

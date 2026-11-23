@@ -12,5 +12,6 @@ require("spec_safety")
 require("spec_robustness")
 require("spec_standalone")
 require("spec_quiet")
+require("spec_stacking")
 
 os.exit(T.report() and 0 or 1)

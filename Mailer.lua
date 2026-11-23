@@ -23,6 +23,15 @@ end
 local function maxSlots()
   return ATTACHMENTS_MAX_SEND or 12
 end
+Mailer.MaxSlots = maxSlots
+
+-- Postage per attached stack, learned from the game's own price the first time a
+-- mail is filled (Classic charges 30 copper per attachment until then).
+local DEFAULT_POSTAGE = 30
+
+function Mailer.PostagePerStack()
+  return (ns.db and ns.db.postagePerStack) or DEFAULT_POSTAGE
+end
 
 local function countKeys(t)
   local n = 0
@@ -127,10 +136,37 @@ function Mailer.AttachNext()
       end
     end
   end
+  if added > 0 and GetSendMailPrice then
+    local attached, price = Mailer.AttachedCount(), GetSendMailPrice()
+    if attached > 0 and price and price > 0 then ns.db.postagePerStack = price / attached end
+  end
   return added
 end
 
-function Mailer.Start(key)
+-- Merge partial stacks for `key` first, then start. Returns "stacking".
+local function stackThenStart(key)
+  if Mailer.stacking then return "stacking" end
+  local job = { key = key }
+  Mailer.stacking = job
+  refresh()
+  ns.Stacker.Run(ns.db, key, job, function()
+    if Mailer.stacking ~= job then return end
+    Mailer.stacking = nil
+    if job.cancelled or not Mailer.IsMailboxOpen() then
+      refresh()
+      return
+    end
+    local started = Mailer.Start(key, true)
+    local run = Mailer.run
+    if started == true and run and run.sendWhenReady then Mailer.Send() end
+    refresh()
+  end)
+  return "stacking"
+end
+
+-- Returns true when the mail is filled, "stacking" while partial stacks are being
+-- combined first (the mail is filled right after), false when it can't start.
+function Mailer.Start(key, skipStacking)
   local db = ns.db
   local mule = db and db.mules[key]
   if not mule then return false end
@@ -155,6 +191,11 @@ function Mailer.Start(key)
   if not recipient then
     Mailer.ExplainRefusal(key)
     return false
+  end
+  if Mailer.stacking then return "stacking" end
+  if not skipStacking and db.options.stackFirst and ns.Stacker.HasWork(db, key) then
+    showSendTab()
+    return stackThenStart(key)
   end
   local queue = ns.Scanner.Collect(db, key)
   if #queue == 0 then
@@ -278,6 +319,7 @@ end
 function Mailer.NextInRun(byClick)
   local run = Mailer.run
   if not run then return false end
+  local started
   repeat
     run.index = run.index + 1
     local key = run.keys[run.index]
@@ -287,13 +329,19 @@ function Mailer.NextInRun(byClick)
       refresh()
       return false
     end
-  until Mailer.Start(key)
+    started = Mailer.Start(key)
+  until started
+  if started == "stacking" then
+    -- Sent once the stacks are combined, unless the game wants a click per mail.
+    run.sendWhenReady = ns.db.options.chain
+    return true
+  end
   if byClick or ns.db.options.chain then Mailer.Send() end
   return true
 end
 
 function Mailer.SendAll(byClick, quiet)
-  if Mailer.session or Mailer.run or not Mailer.IsMailboxOpen() then return false end
+  if Mailer.session or Mailer.run or Mailer.stacking or not Mailer.IsMailboxOpen() then return false end
   local keys = Mailer.PendingAlts()
   if #keys == 0 then
     if not quiet then ns.Print("Nothing in your bags goes to a bank alt.") end
@@ -306,7 +354,14 @@ end
 function Mailer.Cancel()
   local s = Mailer.session
   Mailer.run = nil
-  if not s then return end
+  if Mailer.stacking then
+    Mailer.stacking.cancelled = true
+    Mailer.stacking = nil
+  end
+  if not s then
+    refresh()
+    return
+  end
   Mailer.session = nil
   if not s.sending and Mailer.IsMailboxOpen() then
     for i in pairs(s.attached) do
@@ -440,7 +495,7 @@ local function onRecipientChanged(userInput)
   typeToken = typeToken + 1
   local token = typeToken
   ns.After(TYPE_DELAY, function()
-    if token ~= typeToken or Mailer.session or not Mailer.IsMailboxOpen() then return end
+    if token ~= typeToken or Mailer.session or Mailer.stacking or not Mailer.IsMailboxOpen() then return end
     if ns.Mules.FindExact(db, SendMailNameEditBox:GetText()) ~= key then return end
     Mailer.Start(key)
   end)
@@ -453,6 +508,10 @@ local function onMailboxClosed()
   mailboxHandled = false
   local s = Mailer.session
   Mailer.run = nil
+  if Mailer.stacking then
+    Mailer.stacking.cancelled = true
+    Mailer.stacking = nil
+  end
   if not s then return end
   Mailer.session = nil
   local left = #s.queue + countKeys(s.attached)

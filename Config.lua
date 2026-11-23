@@ -617,8 +617,10 @@ local function buildOptionsTab(pane)
   ui.openCheck.label:SetText("Send to every bank alt as soon as I open a mailbox")
   text(pane, "Everything goes right away, so there is no chance to leave items out at the mailbox.",
     "GameFontDisableSmall", LEFT + CHECK + 4, -86)
+  ui.stackCheck = checkBox(pane, LEFT, -108, labelWidth, option("stackFirst"))
+  ui.stackCheck.label:SetText("Combine partial stacks of outgoing items first (fewer mails, less postage)")
 
-  local excludeY = -138
+  local excludeY = -166
   text(pane, "Never send (any bank alt)", "GameFontNormal", LEFT, excludeY + 18)
   ui.excludeDrop = dropZone(pane, LEFT, excludeY, "Drag an item here to keep it in your bags.", addExclude)
   ui.excludeMore = text(pane, "", "GameFontDisableSmall", LEFT, excludeY - 2 * (ICON + ICON_GAP))
@@ -632,6 +634,7 @@ local function refreshOptions(db)
   ui.autoCheck:SetChecked(db.options.autoAttach)
   ui.chainCheck:SetChecked(db.options.chain)
   ui.openCheck:SetChecked(db.options.autoSendOnOpen)
+  ui.stackCheck:SetChecked(db.options.stackFirst)
   layoutIcons(panes.options, ui.excludeButtons, ns.SortedIDs(db.exclude), LEFT + ICON + 8, ui.excludeY,
     removeExclude, ui.excludeMore)
 end

@@ -113,6 +113,7 @@ local DEFAULTS = {
     autoAttach = true,      -- fill the mail as soon as a bank alt's name is typed in "To:"
     chain = true,           -- after one mail goes out, send the next batch without another click
     autoSendOnOpen = false, -- send to every bank alt as soon as a mailbox opens
+    stackFirst = true,      -- combine partial stacks of outgoing items before mailing
   },
 }
 

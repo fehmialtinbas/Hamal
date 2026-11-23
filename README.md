@@ -65,6 +65,15 @@ With a single bank alt you can leave the name out.
 
 **Everything at once:** press **Send all** at the top of the Hamal panel. Hamal mails each bank alt
 its items, one after another. With "send as soon as I open a mailbox" on, this happens by itself.
+The button shows what it will take before you press it, e.g. `Send all: 6 mail(s), ~21s`; hover it
+for the count per bank alt.
+
+**How many items per mail.** A mail takes 12 stacks (Hamal reads the limit from the game). Hamal
+queues every outgoing stack, fills a mail, sends it, and fills the next one when the server confirms,
+until the queue is empty: 100 stacks go as 12 + 12 + ... + 4. Before that, partial stacks of the
+outgoing items are combined (7 + 12 + 5 Linen Cloth become 20 + 4), which means fewer mails and less
+postage. Only items that are being mailed are moved; switch it off under Options if you prefer.
+Postage is checked before every mail; the estimate uses the price the game charged last time.
 
 **One bank alt, with a final check:**
 

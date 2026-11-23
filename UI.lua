@@ -92,6 +92,10 @@ function UI.Create()
   sendAllButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   sendAllButton:SetHeight(BUTTON_HEIGHT)
   sendAllButton:SetScript("OnClick", ns.Safely(function() ns.Mailer.SendAll(true) end))
+  sendAllButton:SetScript("OnEnter", ns.Safely(function(self)
+    if self.details then ns.Widgets.ShowTextTooltip(self, self.details) end
+  end))
+  sendAllButton:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
 
   settingsButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   settingsButton:SetHeight(BUTTON_HEIGHT)
@@ -112,6 +116,10 @@ local function statusText(keys, session, iAmBank)
   if #keys == 0 then
     if iAmBank then return "This character is a bank alt.\nOpen your inbox to collect." end
     return "No bank alts yet.\nPress Settings to add one."
+  end
+  local stacking = ns.Mailer.stacking
+  if stacking then
+    return ("Combining stacks for %s..."):format(ns.db.mules[stacking.key].name)
   end
   if not session then
     return "Click a bank alt, or type its name in To:."
@@ -163,6 +171,25 @@ local function layoutItems(session, busy, y)
   return y - 16
 end
 
+-- What "Send all" will do: mails, postage and one tooltip line per bank alt.
+function UI.Totals(db, summary, keys)
+  local perMail, perStack = ns.Mailer.MaxSlots(), ns.Mailer.PostagePerStack()
+  local mails, postage, lines = 0, 0, {}
+  for _, key in ipairs(keys) do
+    local s = summary[key]
+    local stacks = db.options.stackFirst and s.minStacks or s.stacks
+    local n = math.ceil(stacks / perMail)
+    mails = mails + n
+    postage = postage + stacks * perStack
+    local line = ("%s: %d stack(s), %d mail(s)"):format(db.mules[key].name, stacks, n)
+    if stacks < s.stacks then
+      line = line .. (" (%d before combining)"):format(s.stacks)
+    end
+    lines[#lines + 1] = line
+  end
+  return mails, math.floor(postage + 0.5), lines
+end
+
 function UI.Refresh()
   if not panel or not panel:IsVisible() or not ns.db then return end
   local db = ns.db
@@ -172,15 +199,19 @@ function UI.Refresh()
   for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
     if key ~= me then keys[#keys + 1] = key end
   end
-  local counts = ns.Scanner.CountAll(db)
+  local summary = ns.Scanner.Summary(db)
+  local counts = {}
+  for key, s in pairs(summary) do counts[key] = s.stacks end
   local session = ns.Mailer.session
-  local busy = session and session.sending
+  local busy = (session and session.sending) or ns.Mailer.stacking ~= nil
 
   local y = -PAD - 20
-  local pendingAlts, pendingStacks = ns.Mailer.PendingAlts(counts)
-  if not session and not ns.Mailer.run and #pendingAlts > 0 then
+  local pendingAlts = ns.Mailer.PendingAlts(counts)
+  if not session and not ns.Mailer.run and not ns.Mailer.stacking and #pendingAlts > 0 then
+    local mails, postage, lines = UI.Totals(db, summary, pendingAlts)
     fullWidth(sendAllButton, y)
-    sendAllButton:SetText(("Send all: %d stack(s) to %d alt(s)"):format(pendingStacks, #pendingAlts))
+    sendAllButton:SetText(("Send all: %d mail(s), ~%s"):format(mails, ns.FormatMoney(postage)))
+    sendAllButton.details = table.concat(lines, "\n")
     sendAllButton:Show()
     y = y - BUTTON_HEIGHT - 8
   else

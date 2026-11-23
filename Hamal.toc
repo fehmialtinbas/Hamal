@@ -12,6 +12,7 @@ Categories.lua
 Mules.lua
 Rules.lua
 Scanner.lua
+Stacker.lua
 Characters.lua
 Items.lua
 Mailer.lua

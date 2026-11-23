@@ -244,6 +244,7 @@ T.describe("Settings: options tab", function()
     w:Fill(F.PEACEBLOOM, 2, 5)
     w:OpenMailbox()
     w:Click(ns.UI.muleButtons[2])
+    w:Flush() -- the two half stacks are combined first
     T.eq(ns.Mailer.session.key, herb)
     w:Click(ns.UI.settingsButton)
     T.truthy(ns.Config.frame:IsShown(), "window open")
