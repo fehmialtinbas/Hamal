@@ -1,6 +1,7 @@
 # Push a tag like v0.1.0 to build the addon zip and upload it.
 # Uploads to CurseForge with the CF_API_TOKEN secret (project id in Hamal.toc). For Wago too,
 # add a WAGO_API_TOKEN secret and a "## X-Wago-ID" line in Hamal.toc.
+# Only people with write access can push tags, so pull requests never reach this workflow.
 name: Release
 
 on:
@@ -8,9 +9,11 @@ on:
     tags:
       - "v*"
 
+# Write access only to create the GitHub release; nothing else.
 permissions:
   contents: write
 
+# Actions are pinned to exact commits (Dependabot keeps them current).
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -19,7 +22,8 @@ jobs:
       WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
       GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: BigWigsMods/packager@v2
+          persist-credentials: false
+      - uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
