@@ -26,7 +26,6 @@ Type `/hamal` (or use the minimap addon menu, or **Settings** in the mailbox pan
 - **Always send these items**: drag a single item from your bags onto the slot.
 - **Shortcut for To:**: a one-word alias, e.g. `vk` for Vault Keeper.
 - Unticking a bank alt keeps its rules for later; **Forget** deletes them.
-- A bank alt on another account can be added by name.
 
 **Realms and rulesets.** Forever has one realm per ruleset (PvE, PvP, RP, ...) and mail does not
 cross realms. Each character records its realm and ruleset when you log in on it, and then:
@@ -35,7 +34,7 @@ cross realms. Each character records its realm and ruleset when you log in on it
   **Show other realms and hidden**;
 - items only go to bank alts on your current realm (a cloth alt on another realm is skipped and the
   next matching alt on this realm gets the cloth);
-- characters Bagnon imported but you have not logged in on yet show a `?` until they do;
+- characters Bagnon imported but you have not logged in on yet show a `?` and get nothing until they do;
 - **Hide** a character you no longer play: it leaves the list and gets no mail. Logging in on it
   shows it again.
 
@@ -79,6 +78,21 @@ If the game insists on a click for every mail, Hamal notices, turns chaining off
 Send once per batch. `/hamal chain on` tries chaining again.
 
 Writing to someone else after Hamal filled the mail? Change the name in **To:** and Hamal takes its items back out.
+
+## Your items never go to anyone else
+
+Hamal mails a character only when it is certainly one of yours and on the realm you are on:
+
+- it has logged in on this account with Hamal installed, on this realm, and you haven't hidden it;
+- there is no way to type in another name: bank alts are picked from your own characters;
+- characters on other realms are refused (the same name there can belong to a stranger here),
+  and so are characters Hamal has not seen log in yet;
+- the recipient is checked again right before every mail, and the exact name of your character is used;
+- if the **To:** field changes to anything else after Hamal filled the mail, Hamal takes its items back out;
+- money and C.O.D. are always set to zero on Hamal's mails.
+
+The one thing Hamal cannot know: if you delete a character, its name becomes free for others.
+Use **Forget** on a bank alt before you delete it.
 
 ## What is never sent
 

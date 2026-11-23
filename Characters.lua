@@ -49,10 +49,13 @@ function Characters.Place(db, key)
   return "other"
 end
 
--- Mail can't cross realms, and hidden characters get nothing. Unknown ones get a try.
+-- The safety rule: Hamal mails a character only when it is certainly yours and on
+-- this realm. That means it logged in on this account with Hamal, on the realm you
+-- are on now, and you haven't hidden it. A name on another realm can belong to a
+-- stranger here, so characters on other realms, characters not placed yet (e.g.
+-- imported from Bagnon), hidden ones and typed-in names all get nothing.
 function Characters.CanMail(db, key)
-  local place = Characters.Place(db, key)
-  return place ~= "other" and place ~= "hidden"
+  return Characters.Place(db, key) == "here"
 end
 
 function Characters.SetHidden(db, key, hidden)

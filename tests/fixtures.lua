@@ -30,10 +30,32 @@ function F.setup(prepare)
   return w, ns
 end
 
+-- Make `name` a character of this account that has logged in on the current realm,
+-- which is what Hamal requires before it mails anything to it.
+function F.own(ns, name)
+  name = ns.CleanName(name)
+  local chars = ns.db.characters[ns.RealmKey()]
+  chars[name] = chars[name] or { class = "WARRIOR", level = 1, faction = "Horde" }
+  chars[name].realm = Mock.world.realmName
+  return name
+end
+
+-- Every character of the account counts as logged in on the current realm.
+function F.placeAll(ns)
+  for _, info in pairs(ns.db.characters[ns.RealmKey()]) do
+    info.realm = info.realm or Mock.world.realmName
+  end
+end
+
+-- One of your characters, made a bank alt.
+function F.addMule(ns, name)
+  return ns.Mules.Add(ns.db, F.own(ns, name))
+end
+
 -- Same, plus one bank alt "Vault Keeper" that takes cloth.
 function F.withVault()
   local w, ns = F.setup()
-  local key = ns.Mules.Add(ns.db, "Vault Keeper")
+  local key = F.addMule(ns, "Vault Keeper")
   ns.Mules.ToggleCategory(ns.db, key, "cloth")
   return w, ns, key
 end

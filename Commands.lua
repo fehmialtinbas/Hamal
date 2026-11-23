@@ -57,7 +57,7 @@ handlers.options = handlers.settings
 function handlers.help()
   ns.Print("commands:")
   ns.Print("  /hamal - open the settings window")
-  ns.Print("  /hamal add Name Surname - add a bank alt")
+  ns.Print("  /hamal add Name Surname - make one of your characters a bank alt")
   ns.Print("  /hamal cat Name cloth herb - toggle item types for it (/hamal cats lists types)")
   ns.Print("  /hamal item Name [item] - always send this item to it (shift-click the item)")
   ns.Print("  /hamal exclude [item] - never send this item")
@@ -70,11 +70,24 @@ function handlers.help()
   ns.Print("  /hamal remove Name - forget a bank alt")
 end
 
+-- Only characters of this account that Hamal has seen log in can become bank alts:
+-- a typed name could belong to a stranger.
 function handlers.add(args)
-  local key, err = ns.Mules.Add(ns.db, args)
-  if not key then return ns.Print(err) end
-  local name = ns.db.mules[key].name
+  local key = ns.NormalizeName(args)
+  local info, name
+  if key then info, name = ns.Characters.Entry(ns.db, key) end
+  if not info then
+    return ns.Print("Hamal only mails your own characters. Log in on %s once with Hamal, then add it.",
+      key and ns.CleanName(args) or "that character")
+  end
+  local mule = ns.db.mules[key]
+  if mule then
+    mule.disabled = nil
+  else
+    ns.Mules.Add(ns.db, name)
+  end
   ns.Print("Added bank alt %s. Now pick what goes there, e.g. /hamal cat %s cloth herb", name, name)
+  if not ns.Characters.CanMail(ns.db, key) then ns.Mailer.ExplainRefusal(key) end
   refresh()
 end
 

@@ -8,5 +8,6 @@ require("spec_commands")
 require("spec_mailer")
 require("spec_config")
 require("spec_realms")
+require("spec_safety")
 
 os.exit(T.report() and 0 or 1)

@@ -156,15 +156,6 @@ local function toggleBankAlt(check)
   changed()
 end
 
-local function addByName()
-  local key, err = ns.Mules.Add(ns.db, ui.nameBox:GetText())
-  if not key then return ns.Print(err) end
-  ui.nameBox:SetText("")
-  ui.nameBox:ClearFocus()
-  selectedKey = key
-  changed()
-end
-
 local function toggleHidden()
   if not selectedKey then return end
   local info = ns.Characters.Entry(ns.db, selectedKey)
@@ -258,13 +249,9 @@ local function buildAltsTab(pane)
     charOffset = 0
     Config.Refresh()
   end)
-  local hint = text(pane, "A character is placed on its realm when you log in on it once.", "GameFontDisableSmall",
-    LEFT, listBottom - 28)
+  local hint = text(pane, "Hamal only mails your own characters on the realm you are on, after you have "
+    .. "logged in on them once. A \"?\" means: not confirmed yet.", "GameFontDisableSmall", LEFT, listBottom - 28)
   hint:SetWidth(LEFT_WIDTH)
-  text(pane, "Bank alt on another account", "GameFontHighlightSmall", LEFT, listBottom - 62)
-  ui.nameBox = inputBox(pane, LEFT_WIDTH - 12, LEFT, listBottom - 78)
-  ui.nameBox:SetScript("OnEnterPressed", addByName)
-  ui.addButton = button(pane, "Add by name", LEFT_WIDTH, LEFT, listBottom - 104, addByName)
 
   ui.header = text(pane, "", "GameFontNormalLarge", RIGHT, -4)
   ui.subHeader = text(pane, "", "GameFontDisableSmall", RIGHT, -26)
@@ -317,6 +304,7 @@ end
 local PLACE_TAGS = {
   unknown = " |cff999999?|r",
   hidden = " |cff999999(hidden)|r",
+  manual = " |cffff3333(not verified)|r",
 }
 
 local function rowLabel(entry)
@@ -337,12 +325,14 @@ local function describe(entry, isBank)
   if entry.level and entry.class then
     parts[#parts + 1] = ("Level %d %s"):format(entry.level, titleCase(entry.class))
   elseif entry.manual then
-    parts[#parts + 1] = "Added by name"
+    parts[#parts + 1] = "Not a character Hamal has seen on this account"
   end
   if entry.realm then parts[#parts + 1] = entry.realm .. " realm" end
   if entry.place == "unknown" then parts[#parts + 1] = "realm not known yet" end
   if entry.isMe then
     parts[#parts + 1] = isBank and "this character: it won't mail itself" or "this character"
+  elseif isBank and entry.place ~= "here" then
+    parts[#parts + 1] = "|cffff9933gets nothing until you log in on it on this realm|r"
   end
   return table.concat(parts, " - ")
 end
@@ -352,13 +342,13 @@ local function notBankText(selected)
   if selected.place == "hidden" then
     return ("%s is hidden. Press Show if you play it again."):format(selected.name)
   end
-  local text = ("Tick the box next to %s to make it a bank alt."):format(selected.name)
+  local message = ("Tick the box next to %s to make it a bank alt."):format(selected.name)
   if selected.place == "other" then
-    text = text .. ("\nIt is on the %s realm, so only characters there can mail it."):format(selected.realm)
+    message = message .. ("\nIt is on the %s realm, so only characters there can mail it."):format(selected.realm)
   elseif selected.place == "unknown" then
-    text = text .. "\nIf you no longer play it, press Hide."
+    message = message .. "\nIf you no longer play it, press Hide."
   end
-  return text
+  return message
 end
 
 local function categoryLabel(db, def, checked)

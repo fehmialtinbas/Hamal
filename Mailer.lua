@@ -62,6 +62,40 @@ local function showSendTab()
   end
 end
 
+-- Safety ---------------------------------------------------------------------------
+
+-- The exact name to mail, or nil when Hamal must not mail this bank alt from here.
+-- Every send goes through this (see Characters.CanMail for the rule).
+function Mailer.VerifiedRecipient(key)
+  local db = ns.db
+  if not key or not ns.Mules.IsActive(db, key) then return nil end
+  if key == ns.NormalizeName(ns.PlayerName()) then return nil end
+  local info, name = ns.Characters.Entry(db, key)
+  if not info or ns.NormalizeName(name) ~= key then return nil end
+  return name
+end
+
+function Mailer.ExplainRefusal(key)
+  local db = ns.db
+  local mule = db.mules[key]
+  local name = mule and mule.name or key
+  if mule and mule.disabled then
+    return ns.Print("%s is switched off in Hamal's settings.", name)
+  end
+  local place = ns.Characters.Place(db, key)
+  if place == "other" then
+    local info = ns.Characters.Entry(db, key)
+    ns.Print("%s is on the %s realm; mail can't safely reach it from %s.", name, info.realm,
+      ns.Characters.CurrentRealm() or "here")
+  elseif place == "hidden" then
+    ns.Print("%s is hidden in Hamal's settings.", name)
+  elseif place == "unknown" then
+    ns.Print("Log in on %s once so Hamal can confirm it is yours and on this realm. Until then it gets nothing.", name)
+  else
+    ns.Print("%s is not one of your characters. Hamal only mails your own characters.", name)
+  end
+end
+
 -- Fill the empty attachment slots from the session queue. Returns how many were attached.
 function Mailer.AttachNext()
   local s = Mailer.session
@@ -113,18 +147,13 @@ function Mailer.Start(key)
     end
     Mailer.Cancel()
   end
-  if not ns.Mules.IsActive(db, key) then
-    local info = ns.Characters.Entry(db, key)
-    if info and info.realm and not info.hidden and mule and not mule.disabled then
-      ns.Print("%s is on the %s realm; mail can't reach it from %s.", mule.name, info.realm,
-        ns.Characters.CurrentRealm() or "here")
-    else
-      ns.Print("%s is switched off in Hamal's settings.", mule.name)
-    end
-    return false
-  end
   if ns.NormalizeName(ns.PlayerName()) == key then
     ns.Print("You are logged in as %s. Use another character to fill this bank.", mule.name)
+    return false
+  end
+  local recipient = Mailer.VerifiedRecipient(key)
+  if not recipient then
+    Mailer.ExplainRefusal(key)
     return false
   end
   local queue = ns.Scanner.Collect(db, key)
@@ -135,7 +164,7 @@ function Mailer.Start(key)
   showSendTab()
   Mailer.session = {
     key = key,
-    name = mule.name,
+    name = recipient,
     queue = queue,
     attached = {},
     sent = 0,
@@ -157,6 +186,13 @@ function Mailer.Send()
     Mailer.Finish()
     return false
   end
+  -- Last gate before anything leaves the bags: check the recipient again, now.
+  local recipient = Mailer.VerifiedRecipient(s.key)
+  if not recipient or recipient ~= s.name then
+    ns.Print("Stopped: %s is not a verified character of yours on this realm. Nothing was sent.", s.name)
+    Mailer.Cancel()
+    return false
+  end
   local price = GetSendMailPrice and GetSendMailPrice() or 0
   if GetMoney() < price then
     ns.Print("Not enough money for postage (%s).", ns.FormatMoney(price))
@@ -165,9 +201,10 @@ function Mailer.Send()
   -- Never let a leftover money or C.O.D. value ride along with a bank mail.
   if SetSendMailMoney then SetSendMailMoney(0) end
   if SetSendMailCOD then SetSendMailCOD(0) end
+  Mailer.SetRecipient(recipient)
   local subject = ("Hamal %d/%d"):format(s.mails + 1, Mailer.Estimate(s))
   -- Called through the global on purpose: the SendMail hook below must see it.
-  SendMail(s.name, subject, "")
+  SendMail(recipient, subject, "")
   return true
 end
 
@@ -393,9 +430,11 @@ local function onRecipientChanged(userInput)
   local key = ns.Mules.FindExact(db, SendMailNameEditBox:GetText())
   local s = Mailer.session
   if s then
-    if key == s.key or s.sending or s.awaitingRefill or not userInput then return end
-    -- The player is now writing to someone else: take our items back out of the mail.
+    if key == s.key or s.sending or s.awaitingRefill then return end
+    -- To: no longer names our bank alt (typed, autocompleted or set by anything else):
+    -- take our items back out before the game's Send button could mail them there.
     Mailer.Cancel()
+    if not userInput then return end
   end
   if not key or not db.options.autoAttach then return end
   typeToken = typeToken + 1
