@@ -95,3 +95,18 @@ T.describe("About", function()
     end
   end)
 end)
+
+T.describe("Tips", function()
+  T.it("never reach the game: no file the addon ships mentions the tip character or donations", function()
+    local toc = assert(io.open("Hamal.toc")):read("*a")
+    local files = { "Hamal.toc", "Bindings.xml" }
+    for name in toc:gmatch("\n([%w_]+%.lua)") do files[#files + 1] = name end
+    T.truthy(#files > 10, "read the file list from the .toc")
+    for _, name in ipairs(files) do
+      local source = assert(io.open(name)):read("*a"):lower()
+      for _, word in ipairs({ "buyme", "donat" }) do
+        T.truthy(not source:find(word), name .. " mentions '" .. word .. "'")
+      end
+    end
+  end)
+end)
