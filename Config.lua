@@ -688,6 +688,32 @@ local function buildOptionsTab(pane)
     LEFT, excludeY - 2 * (ICON + ICON_GAP) - 14)
   ui.excludeButtons = {}
   ui.excludeY = excludeY
+
+  -- About: the version and where to read the code or report a bug. The game can't open
+  -- links, so the address sits in a box that selects itself for copying and can't be edited.
+  ui.about = text(pane, ("Hamal %s by fehmialtinbas. Source code and bug reports (click, then Ctrl+C or Cmd+C):")
+    :format(ns.Version()), "GameFontDisableSmall", LEFT, 0)
+  ui.about:ClearAllPoints()
+  ui.about:SetPoint("BOTTOMLEFT", LEFT, 44)
+  local box = inputBox(pane, 280, LEFT, 0)
+  box:ClearAllPoints()
+  box:SetPoint("BOTTOMLEFT", LEFT + 6, 18)
+  box:SetText(ns.WEBSITE)
+  box:SetCursorPosition(0)
+  local function selectAll(self)
+    self:SetText(ns.WEBSITE)
+    self:HighlightText()
+  end
+  box:SetScript("OnEditFocusGained", ns.Safely(selectAll))
+  box:SetScript("OnTextChanged", ns.Safely(function(self, userInput)
+    if userInput then selectAll(self) end
+  end))
+  box:SetScript("OnEnterPressed", ns.Safely(function(self) self:ClearFocus() end))
+  box:SetScript("OnEditFocusLost", ns.Safely(function(self)
+    self:HighlightText(0, 0)
+    self:SetCursorPosition(0)
+  end))
+  ui.websiteBox = box
 end
 
 local function refreshOptions(db)

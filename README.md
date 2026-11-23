@@ -10,8 +10,8 @@ the mail with everything in your bags that belongs to that alt. One click on **S
 Built for **World of Warcraft: Forever** (1.60.1, interface 16001). Hamal stands on its own: no
 libraries, no other addons needed, and it reads no other addon's data.
 
-> Status: early. The mailing flow is covered by offline tests against a fake client but has not
-> been tried in the game yet.
+> Status: early. Tried in the game on Forever, and the mailing flow is covered by offline tests
+> against a fake client.
 
 ## Setup (in game)
 
@@ -49,6 +49,8 @@ with where it goes right now. Click one to choose: *Follow item types*, *Always 
 - Send every batch with one click.
 - Send to every bank alt as soon as you open a mailbox (off by default).
 - The never-send list.
+- At the bottom: the version and the address of the source code and bug reports, in a box you can
+  copy from.
 
 Everything can also be done with slash commands (see below), e.g.:
 

@@ -31,6 +31,9 @@ function ns.Version()
   return version
 end
 
+-- Where the source code and bug reports live (also in the .toc as X-Website).
+ns.WEBSITE = "https://github.com/fehmialtinbas/Hamal"
+
 local PREFIX = "|cffe6b85cHamal|r: "
 
 function ns.Print(fmt, ...)

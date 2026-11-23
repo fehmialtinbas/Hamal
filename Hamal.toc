@@ -6,6 +6,7 @@
 ## SavedVariables: HamalDB
 ## IconTexture: Interface\Icons\INV_Letter_15
 ## AddonCompartmentFunc: Hamal_OnAddonCompartmentClick
+## X-Website: https://github.com/fehmialtinbas/Hamal
 
 Core.lua
 Categories.lua

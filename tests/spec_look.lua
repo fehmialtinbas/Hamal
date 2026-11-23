@@ -71,3 +71,27 @@ T.describe("Look", function()
     T.eq(scans, 0, "no bag reads")
   end)
 end)
+
+T.describe("About", function()
+  T.it("shows the version and a copyable GitHub address that can't be edited", function()
+    local _, ns = F.setup()
+    SlashCmdList.HAMAL("")
+    ns.Config.ShowTab("options")
+    local box = ns.Config.widgets.websiteBox
+    T.eq(box:GetText(), "https://github.com/fehmialtinbas/Hamal")
+    T.truthy(ns.Config.widgets.about:GetText():find("Hamal dev by fehmialtinbas"), "version and author")
+    box.text = "https://github.com/fehmialtinbas/Hamalxyz"
+    box:FireScript("OnTextChanged", true)
+    T.eq(box:GetText(), "https://github.com/fehmialtinbas/Hamal", "typing changes nothing")
+  end)
+
+  T.it("asks for nothing in game: no tips, no donations", function()
+    local _, ns = F.setup()
+    SlashCmdList.HAMAL("")
+    ns.Config.ShowTab("options")
+    local about = ns.Config.widgets.about:GetText():lower()
+    for _, word in ipairs({ "tip", "donat", "coffee", "gold", "support" }) do
+      T.truthy(not about:find(word), "no '" .. word .. "' in the about text")
+    end
+  end)
+end)
