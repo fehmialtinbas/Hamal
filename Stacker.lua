@@ -9,7 +9,8 @@ ns.Stacker = Stacker
 
 local STEP_DELAY = 0.1
 local MAX_LOCKED_STEPS = 30 -- give up after ~3 s of slots that stay locked
-local MAX_MOVES = 60
+-- Each move removes one partial stack, so a full set of bags never needs more.
+local MAX_MOVES = 150
 
 function Stacker.MaxStack(itemID)
   if C_Item and C_Item.GetItemMaxStackSizeByID then

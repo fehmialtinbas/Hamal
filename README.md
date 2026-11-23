@@ -73,7 +73,13 @@ queues every outgoing stack, fills a mail, sends it, and fills the next one when
 until the queue is empty: 100 stacks go as 12 + 12 + ... + 4. Before that, partial stacks of the
 outgoing items are combined (7 + 12 + 5 Linen Cloth become 20 + 4), which means fewer mails and less
 postage. Only items that are being mailed are moved; switch it off under Options if you prefer.
-Postage is checked before every mail; the estimate uses the price the game charged last time.
+Postage is checked before every mail.
+
+**Cost.** Postage is charged per attached stack (and possibly per mail). Hamal measures the game's
+own price while it fills a mail, works out the per-stack and per-mail parts, and uses them for the
+estimate on the Send all button (`/hamal status` shows the measured prices). Because partial stacks
+are combined and every mail is filled to the limit, Hamal sends the fewest stacks and the fewest
+mails possible for what you're mailing, so the postage is the lowest it can be.
 
 **One bank alt, with a final check:**
 

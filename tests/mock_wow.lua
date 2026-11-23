@@ -256,12 +256,14 @@ function World:installGlobals()
     local d = w.items[it.itemID]
     return d.name, it.itemID, 0, it.count, d.quality
   end
+  -- 30 copper per attached stack, plus an optional per-mail fee a test can set.
   _G.GetSendMailPrice = function()
     local n = 0
     for i = 1, 12 do
       if w.mail[i] then n = n + 1 end
     end
-    return n * 30
+    if n == 0 then return 30 end
+    return (w.postageBase or 0) + n * 30
   end
   _G.ClickSendMailItemButton = function(i, clear)
     if clear then
@@ -303,7 +305,7 @@ function World:installGlobals()
       end
     end
     w.mail = {}
-    w.money = w.money - 30 * #items
+    w.money = w.money - (w.postageBase or 0) - 30 * #items
     table.insert(w.sent, { to = to, subject = subject, items = items })
     table.insert(w.timers, function()
       w.pending = false

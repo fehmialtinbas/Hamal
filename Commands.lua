@@ -64,8 +64,12 @@ function handlers.status()
   ns.Print("  mailbox open: %s | items per mail: %d | mail frame found: %s",
     ns.Mailer.IsMailboxOpen() and "yes" or "no", ATTACHMENTS_MAX_SEND or 12,
     (MailFrame and SendMailNameEditBox) and "yes" or "no")
-  ns.Print("  options: fill on name %s | one-click chain %s | send on open %s",
-    onOff(db.options.autoAttach), onOff(db.options.chain), onOff(db.options.autoSendOnOpen))
+  ns.Print("  options: fill on name %s | one-click chain %s | send on open %s | combine stacks %s",
+    onOff(db.options.autoAttach), onOff(db.options.chain), onOff(db.options.autoSendOnOpen),
+    onOff(db.options.stackFirst))
+  local base, perStack, learned = ns.Mailer.Postage()
+  ns.Print("  postage: %s per stack + %s per mail (%s)", ns.FormatMoney(perStack), ns.FormatMoney(base),
+    learned and "measured in the game" or "assumed until the first mail")
   if ns.errorCount > 0 then
     ns.Print("  errors this session: %d, last: %s", ns.errorCount, ns.lastError or "?")
   else

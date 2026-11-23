@@ -173,14 +173,15 @@ end
 
 -- What "Send all" will do: mails, postage and one tooltip line per bank alt.
 function UI.Totals(db, summary, keys)
-  local perMail, perStack = ns.Mailer.MaxSlots(), ns.Mailer.PostagePerStack()
+  local perMail = ns.Mailer.MaxSlots()
+  local base, perStack = ns.Mailer.Postage()
   local mails, postage, lines = 0, 0, {}
   for _, key in ipairs(keys) do
     local s = summary[key]
     local stacks = db.options.stackFirst and s.minStacks or s.stacks
     local n = math.ceil(stacks / perMail)
     mails = mails + n
-    postage = postage + stacks * perStack
+    postage = postage + n * base + stacks * perStack
     local line = ("%s: %d stack(s), %d mail(s)"):format(db.mules[key].name, stacks, n)
     if stacks < s.stacks then
       line = line .. (" (%d before combining)"):format(s.stacks)

@@ -108,6 +108,68 @@ T.describe("Combining stacks", function()
     w:Fill(F.LINEN, 3, 20)
     w:OpenMailbox()
     w:Click(ns.UI.muleButtons[1])
-    T.eq(ns.db.postagePerStack, 30)
+    T.eq(ns.db.postage.perStack, 30)
+    T.eq(ns.db.postage.base, 0)
+  end)
+
+  T.it("finds a per-mail fee too and counts it in the estimate", function()
+    local w, ns = F.setup(function(w)
+      for bag = 0, 4 do w.bagSize[bag] = 24 end
+      w.postageBase = 50 -- a client that charges 50 copper per mail plus 30 per stack
+    end)
+    local key = F.addMule(ns, "Bank Keeper")
+    ns.Mules.ToggleCategory(ns.db, key, "cloth")
+    w:Fill(F.LINEN, 25, 20)
+    w:OpenMailbox()
+    T.eq(ns.UI.sendAllButton:GetText(), "Send all: 3 mail(s), ~750c", "assumed price before any mail")
+    w:Click(ns.UI.muleButtons[1])
+    T.eq(ns.db.postage.base, 50, "per-mail fee measured")
+    T.eq(ns.db.postage.perStack, 30, "per-stack fee measured")
+    ns.Mailer.Cancel()
+    ns.UI.Refresh()
+    T.eq(ns.UI.sendAllButton:GetText(), "Send all: 3 mail(s), ~900c", "3 x 50 + 25 x 30")
+    local money = w.money
+    w:Click(ns.UI.sendAllButton)
+    w:Flush()
+    T.eq(money - w.money, 900, "the estimate is what it cost")
+  end)
+
+  T.it("always sends the fewest stacks and mails possible", function()
+    math.randomseed(7)
+    for round = 1, 20 do
+      local w, ns = F.setup(function(w)
+        for bag = 0, 4 do w.bagSize[bag] = 24 end
+        w:DefineItem(F.LEATHER, "Light Leather", 7, 6, 1, 10) -- stacks of 10
+      end)
+      local key = F.addMule(ns, "Bank Keeper")
+      ns.Mules.ToggleCategory(ns.db, key, "tradegoods")
+      local totals, max = {}, { [F.LINEN] = 20, [F.PEACEBLOOM] = 20, [F.LEATHER] = 10 }
+      for itemID, size in pairs(max) do
+        totals[itemID] = 0
+        for _ = 1, math.random(0, 35) do
+          local count = math.random(1, size)
+          w:Fill(itemID, 1, count)
+          totals[itemID] = totals[itemID] + count
+        end
+      end
+      local fewestStacks = 0
+      for itemID, total in pairs(totals) do
+        fewestStacks = fewestStacks + math.ceil(total / max[itemID])
+      end
+      w:OpenMailbox()
+      w:Click(ns.UI.sendAllButton)
+      w:Flush()
+      local stacks, sent = 0, {}
+      for _, mail in ipairs(w.sent) do
+        stacks = stacks + #mail.items
+        for _, it in ipairs(mail.items) do sent[it.itemID] = (sent[it.itemID] or 0) + it.count end
+      end
+      local where = "round " .. round
+      T.eq(stacks, fewestStacks, where .. ": stacks")
+      T.eq(#w.sent, math.ceil(fewestStacks / 12), where .. ": mails")
+      for itemID, total in pairs(totals) do
+        T.eq(sent[itemID] or 0, total, where .. ": every item arrived")
+      end
+    end
   end)
 end)

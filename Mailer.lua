@@ -25,12 +25,36 @@ local function maxSlots()
 end
 Mailer.MaxSlots = maxSlots
 
--- Postage per attached stack, learned from the game's own price the first time a
--- mail is filled (Classic charges 30 copper per attachment until then).
-local DEFAULT_POSTAGE = 30
+-- Postage model: price = base (per mail) + perStack * stacks attached. Learned from
+-- two readings of the game's own price while a mail is filled; until then Classic's
+-- 30 copper per stack with no base fee is assumed.
+local DEFAULT_PER_STACK = 30
 
-function Mailer.PostagePerStack()
-  return (ns.db and ns.db.postagePerStack) or DEFAULT_POSTAGE
+-- Returns base, perStack, learned.
+function Mailer.Postage()
+  local postage = ns.db and ns.db.postage
+  if postage and postage.perStack then return postage.base or 0, postage.perStack, true end
+  return 0, DEFAULT_PER_STACK, false
+end
+
+local function learnPostage(first, last)
+  local db = ns.db
+  if not last or last.stacks <= 0 or not last.price or last.price <= 0 then return end
+  if first and first.stacks ~= last.stacks then
+    local perStack = (last.price - first.price) / (last.stacks - first.stacks)
+    local base = first.price - perStack * first.stacks
+    if perStack >= 0 and base >= 0 then
+      db.postage = { base = base, perStack = perStack, exact = true }
+    end
+  elseif not (db.postage and db.postage.exact) then
+    -- A single reading can't separate a per-mail fee; assume none until it can.
+    db.postage = { base = 0, perStack = last.price / last.stacks }
+  end
+end
+
+local function priceReading()
+  if not GetSendMailPrice then return nil end
+  return { stacks = Mailer.AttachedCount(), price = GetSendMailPrice() }
 end
 
 local function countKeys(t)
@@ -113,7 +137,7 @@ function Mailer.AttachNext()
     ns.Print("Your cursor is holding an item. Put it down and try again.")
     return 0
   end
-  local added = 0
+  local added, firstReading = 0, nil
   for i = 1, maxSlots() do
     if #s.queue == 0 then break end
     if not GetSendMailItem(i) then
@@ -130,16 +154,14 @@ function Mailer.AttachNext()
           else
             s.attached[i] = item
             added = added + 1
+            firstReading = firstReading or priceReading()
             break
           end
         end
       end
     end
   end
-  if added > 0 and GetSendMailPrice then
-    local attached, price = Mailer.AttachedCount(), GetSendMailPrice()
-    if attached > 0 and price and price > 0 then ns.db.postagePerStack = price / attached end
-  end
+  if added > 0 then learnPostage(firstReading, priceReading()) end
   return added
 end
 

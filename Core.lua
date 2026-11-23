@@ -131,6 +131,11 @@ end
 function ns.InitDB()
   if type(HamalDB) ~= "table" then HamalDB = {} end
   applyDefaults(HamalDB, DEFAULTS)
+  -- Earlier builds stored only a per-stack price.
+  if HamalDB.postagePerStack then
+    HamalDB.postage = HamalDB.postage or { base = 0, perStack = HamalDB.postagePerStack }
+    HamalDB.postagePerStack = nil
+  end
   HamalDB.version = ns.DB_VERSION
   ns.db = HamalDB
   return ns.db
