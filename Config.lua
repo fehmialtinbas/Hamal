@@ -512,11 +512,11 @@ end
 
 -- Left-click: menu of choices. Right-click (or no menu on this client): next choice.
 -- Holding an item: drop it here.
-local function onItemClick(row, button)
+local function onItemClick(row, mouseButton)
   if CursorHasItem() then return dropOnItemList() end
   local entry = row.entry
   if not entry then return end
-  if button == "RightButton" or not (MenuUtil and MenuUtil.CreateContextMenu) then
+  if mouseButton == "RightButton" or not (MenuUtil and MenuUtil.CreateContextMenu) then
     return cycleChoice(entry, 1)
   end
   local db = ns.db
