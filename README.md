@@ -164,9 +164,12 @@ the panel's buttons.
 
 ## What is never sent
 
-- Soulbound, quest and locked items
+- Soulbound and locked items
 - Hearthstone, Thieves' Tools and profession tools (mining pick, skinning knife, hammer, rods, ...)
 - Anything on your exclude list: `/hamal exclude [item]`
+- Quest items, unless you pick one for a bank alt yourself. Some unbound ones are worth mailing,
+  such as Torn Bear Pelt (a Darkmoon Faire turn-in): choose it on the Items tab or drag it onto
+  **Always send these items**. Item types never send them.
 
 If two bank alts want the same item:
 

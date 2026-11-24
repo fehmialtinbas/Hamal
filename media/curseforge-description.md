@@ -61,8 +61,9 @@ mailbox opens, combine stacks, the never-send list, the minimap button, and the 
 
 ## Never sent
 
-Soulbound, quest and locked items, your Hearthstone, Thieves' Tools and profession tools, and
-anything on your never-send list.
+Soulbound and locked items, your Hearthstone, Thieves' Tools and profession tools, and anything
+on your never-send list. Quest items (such as Torn Bear Pelt) go only if you pick them for a bank
+alt yourself.
 
 ## Works with your UI
 

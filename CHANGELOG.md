@@ -1,5 +1,11 @@
 # Hamal
 
+## v0.1.3
+
+- Quest items that aren't soulbound, such as Torn Bear Pelt (a Darkmoon Faire turn-in), can be
+  mailed now: pick one for a bank alt on the Items tab, or drag it onto **Always send these
+  items**. Item types still never send them.
+
 ## v0.1.2
 
 - Postage on the **Send all** button and in `/hamal status` reads in gold, silver and copper

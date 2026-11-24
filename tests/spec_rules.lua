@@ -74,6 +74,25 @@ T.describe("Rules", function()
     db.exclude[F.LINEN] = true
     T.eq(R.Resolve({ itemID = F.LINEN, classID = 7, subclassID = 5 }, db), nil, "excluded")
   end)
+
+  T.it("send a quest-type item only when it was picked for a bank alt", function()
+    local _, ns = F.setup()
+    local db = ns.db
+    local key = F.addMule(ns, "Vault Keeper")
+    ns.Mules.ToggleCategory(db, key, "tradegoods")
+    ns.Mules.ToggleCategory(db, key, "reagents")
+    local R = ns.Rules
+    local pelt = { itemID = F.QUEST_ITEM, classID = 12, subclassID = 0, isCraftingReagent = true }
+    T.eq(R.Resolve(pelt, db), nil, "no item type sends it")
+    ns.Mules.ToggleItem(db, key, F.QUEST_ITEM)
+    local to, reason = R.Resolve(pelt, db)
+    T.eq(to, key, "picked: it goes")
+    T.eq(reason, "item")
+    T.eq(R.Resolve({ itemID = F.QUEST_ITEM, classID = 12, subclassID = 0, isBound = true }, db), nil,
+      "a bound one stays")
+    db.exclude[F.QUEST_ITEM] = true
+    T.eq(R.Resolve(pelt, db), nil, "the never-send list still wins")
+  end)
 end)
 
 T.describe("Mules", function()

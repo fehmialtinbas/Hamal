@@ -27,9 +27,10 @@ function Items.RequestNames(entries)
 end
 
 -- Where an item goes and why: (bankAltKey, reason) or (nil, reason).
--- reason is "item" (picked by hand), a category key, "never", "kept", "bound" or "none".
+-- reason is "item" (picked by hand), a category key, "never", "kept", "bound", "quest"
+-- (a quest-type item nobody picked) or "none".
 function Items.Destination(db, entry, keys)
-  if ns.Rules.ALWAYS_KEEP[entry.itemID] or entry.classID == ns.Rules.QUEST_ITEM_CLASS then return nil, "kept" end
+  if ns.Rules.ALWAYS_KEEP[entry.itemID] then return nil, "kept" end
   if db.exclude[entry.itemID] then return nil, "never" end
   if entry.isBound then return nil, "bound" end
   local key, reason = ns.Rules.Resolve({
@@ -37,6 +38,7 @@ function Items.Destination(db, entry, keys)
     isCraftingReagent = entry.isCraftingReagent,
   }, db, keys)
   if key then return key, reason end
+  if entry.classID == ns.Rules.QUEST_ITEM_CLASS then return nil, "quest" end
   return nil, "none"
 end
 
@@ -119,7 +121,7 @@ end
 -- Remember mailable items so they stay pickable after they leave your bags.
 function Items.RecordSeen(db)
   ns.Scanner.EachItem(function(item)
-    if not item.isBound and item.classID ~= ns.Rules.QUEST_ITEM_CLASS and not ns.Rules.ALWAYS_KEEP[item.itemID] then
+    if not item.isBound and not ns.Rules.ALWAYS_KEEP[item.itemID] then
       db.seen[item.itemID] = true
     end
   end)

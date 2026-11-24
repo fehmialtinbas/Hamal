@@ -444,6 +444,7 @@ local function destinationText(db, entry)
   if reason == "kept" then return "|cff999999always kept|r" end
   if reason == "never" then return "|cffff6666never sent|r" end
   if reason == "bound" then return "|cff999999soulbound, stays|r" end
+  if reason == "quest" then return "|cff999999quest item, stays|r" end
   if entry.destination then
     local name = db.mules[entry.destination].name
     if reason == "item" then return ("|cff66ff66%s|r (picked)"):format(name) end
@@ -684,7 +685,8 @@ local function buildOptionsTab(pane)
   text(pane, "Never send (any bank alt)", "GameFontNormal", LEFT, excludeY + 18)
   ui.excludeDrop = dropZone(pane, LEFT, excludeY, "Drag an item here to keep it in your bags.", addExclude)
   ui.excludeMore = text(pane, "", "GameFontDisableSmall", LEFT, excludeY - 2 * (ICON + ICON_GAP))
-  text(pane, "Hearthstone, tools, soulbound and quest items never go anyway.", "GameFontDisableSmall",
+  text(pane, "Hearthstone, tools and soulbound items never go. Quest items go only if you pick them.",
+    "GameFontDisableSmall",
     LEFT, excludeY - 2 * (ICON + ICON_GAP) - 14)
   ui.excludeButtons = {}
   ui.excludeY = excludeY

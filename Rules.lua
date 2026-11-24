@@ -28,7 +28,6 @@ Rules.ALWAYS_KEEP = {
 function Rules.IsMailable(item, db)
   if not item or not item.itemID then return false end
   if item.isBound or item.isLocked then return false end
-  if item.classID == QUEST_ITEM_CLASS then return false end
   if Rules.ALWAYS_KEEP[item.itemID] or db.exclude[item.itemID] then return false end
   return true
 end
@@ -39,12 +38,16 @@ end
 --    even if another alt takes "tradegoods" (Categories.list is ordered specific first).
 -- 3. Between equal rules the alphabetically first bank alt wins, so the answer
 --    never changes from one scan to the next.
+-- Items of the game's Quest class (unbound ones such as Torn Bear Pelt, a Darkmoon
+-- Faire turn-in) go only by an item rule: no item type ever sends them, so something
+-- you carry for a quest never leaves unless you picked it yourself.
 function Rules.Resolve(item, db, keys)
   if not Rules.IsMailable(item, db) then return nil end
   keys = keys or ns.Mules.ActiveKeys(db)
   for _, key in ipairs(keys) do
     if db.mules[key].items[item.itemID] then return key, "item" end
   end
+  if item.classID == QUEST_ITEM_CLASS then return nil end
   for _, def in ipairs(ns.Categories.list) do
     if ns.Categories.Matches(def.key, item) then
       for _, key in ipairs(keys) do
