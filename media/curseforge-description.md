@@ -1,4 +1,4 @@
-# Hamal: your materials to your bank alts in one click
+# Hamal: send your materials to your bank alts in one click
 
 *Hamal* is Turkish for "porter", someone who carries other people's loads. Open a mailbox, press
 **Send all**, and every bank alt gets the items that belong to it: cloth to one, herbs to another,
