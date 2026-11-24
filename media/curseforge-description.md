@@ -23,7 +23,7 @@ another.
 ## At the mailbox
 
 - **Send all** mails every bank alt its items. The button shows what it will take before you
-  press it, e.g. `Send all: 6 mail(s), ~21s`. Hover it to see the count for each bank alt.
+  press it, e.g. `Send all: 6 mail(s), ~21s 60c`. Hover it to see the count for each bank alt.
 - **One bank alt at a time:** click its button in the Hamal panel, or type its name (or a short
   alias) in **To:**. Every stack about to go shows as an icon. **Click** one to keep it this
   time, **Shift-click** to never send that item.

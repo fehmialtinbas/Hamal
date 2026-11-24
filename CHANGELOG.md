@@ -1,5 +1,10 @@
 # Hamal
 
+## v0.1.2
+
+- Postage on the **Send all** button and in `/hamal status` reads in gold, silver and copper
+  (`2s 10c`) instead of one long copper number.
+
 ## v0.1.1
 
 First public release.

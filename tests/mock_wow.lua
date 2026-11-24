@@ -188,7 +188,8 @@ function World:installGlobals()
   _G.SlashCmdList = {}
   _G.HamalDB = w.savedDB -- Hamal's saved data from earlier sessions, if a test gives some
   _G.GetMoney = function() return w.money end
-  _G.GetCoinTextureString = function(copper) return copper .. "c" end
+  -- Forever's client has no coin icons; a test can ask for them.
+  _G.GetCoinTextureString = w.coinIcons and function(copper) return "<" .. copper .. " coins>" end or nil
   _G.SetSendMailMoney = function() end
   _G.SetSendMailCOD = function() end
   _G.IsShiftKeyDown = function() return w.shift end

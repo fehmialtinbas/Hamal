@@ -66,9 +66,17 @@ function ns.NormalizeName(name)
   return s
 end
 
+-- Coin icons where the client has them. Forever's client doesn't, so it gets
+-- "2s 10c" instead of a long copper number.
 function ns.FormatMoney(copper)
+  copper = math.max(0, math.floor((tonumber(copper) or 0) + 0.5))
   if GetCoinTextureString then return GetCoinTextureString(copper) end
-  return tostring(copper) .. "c"
+  local gold, silver, rest = math.floor(copper / 10000), math.floor(copper / 100) % 100, copper % 100
+  local parts = {}
+  if gold > 0 then parts[#parts + 1] = gold .. "g" end
+  if silver > 0 then parts[#parts + 1] = silver .. "s" end
+  if rest > 0 or #parts == 0 then parts[#parts + 1] = rest .. "c" end
+  return table.concat(parts, " ")
 end
 
 function ns.ItemLabel(itemID)

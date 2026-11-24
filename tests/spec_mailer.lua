@@ -207,7 +207,7 @@ T.describe("Mailer", function()
     w:Fill(F.LINEN, 15, 20)
     w:Fill(F.PEACEBLOOM, 3, 5) -- three partial stacks, combined into one before mailing
     w:OpenMailbox()
-    T.eq(ns.UI.sendAllButton:GetText(), "Send all: 3 mail(s), ~480c")
+    T.eq(ns.UI.sendAllButton:GetText(), "Send all: 3 mail(s), ~4s 80c")
     T.eq(ns.UI.sendAllButton.details, "Cloth Bank: 15 stack(s), 2 mail(s)\n"
       .. "Herb Bank: 1 stack(s), 1 mail(s) (3 before combining)")
     w:Click(ns.UI.sendAllButton)

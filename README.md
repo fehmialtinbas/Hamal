@@ -67,8 +67,8 @@ With a single bank alt you can leave the name out.
 
 **Everything at once:** press **Send all** at the top of the Hamal panel. Hamal mails each bank alt
 its items, one after another. With "send as soon as I open a mailbox" on, this happens by itself.
-The button shows what it will take before you press it, e.g. `Send all: 6 mail(s), ~21s`; hover it
-for the count per bank alt.
+The button shows what it will take before you press it, e.g. `Send all: 6 mail(s), ~21s 60c`;
+hover it for the count per bank alt.
 
 **How many items per mail.** A mail takes 12 stacks (Hamal reads the limit from the game). Hamal
 queues every outgoing stack, fills a mail, sends it, and fills the next one when the server confirms,
