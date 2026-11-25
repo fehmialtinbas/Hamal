@@ -49,6 +49,7 @@ with where it goes right now. Click one to choose: *Follow item types*, *Always 
 - Send every batch with one click.
 - Send to every bank alt as soon as you open a mailbox (off by default).
 - The never-send list.
+- Say which bank alt gets an item in its tooltip (on by default).
 - At the bottom: the version and the address of the source code and bug reports, in a box you can
   copy from.
 
@@ -70,10 +71,11 @@ its items, one after another. With "send as soon as I open a mailbox" on, this h
 The button shows what it will take before you press it, e.g. `Send all: 6 mail(s), ~21s 60c`;
 hover it for the count per bank alt.
 
-**What's going.** While the mailbox is open, stacks about to be mailed look greyed out in the
-game's own bags, and an item's tooltip says which bank alt gets it (`Hamal: goes to Vault Keeper`).
-Bag addons such as Bagnon draw bags of their own, so they show no grey marks, but the tooltip line
-works there too. A stack you leave out of the mail isn't greyed.
+**What's going.** Hover an item in your bags, at the mailbox or anywhere else, and its tooltip
+says which bank alt gets it (`Hamal: goes to Vault Keeper`); switch this off under Options. While
+the mailbox is open, stacks about to be mailed also look greyed out in the game's own bags, and a
+stack you leave out of the mail isn't. Bag addons such as Bagnon draw bags of their own, so they
+show no grey marks, but the tooltip line works there too.
 
 **How many items per mail.** A mail takes 12 stacks (Hamal reads the limit from the game). Hamal
 queues every outgoing stack, fills a mail, sends it, and fills the next one when the server confirms,
@@ -160,10 +162,10 @@ the panel's buttons.
 ## Light and quiet
 
 - Nothing runs every frame, and nothing runs while you play away from a mailbox: looting and
-  moving items cost Hamal nothing.
+  moving items cost Hamal nothing. The one exception is the tooltip line: hovering an item in
+  your bags makes Hamal read that one slot.
 - At the mailbox, bursts of bag and attachment events are merged into one refresh.
-- The grey bag marks and the tooltip line work only while a mailbox is open; away from it the
-  tooltip hook returns at once.
+- The grey bag marks work only while a mailbox is open.
 - Item names for the Items tab are asked from the server only for the rows on screen, and item
   events are only listened to while that tab is open.
 - No chat messages at login. If something in Hamal ever breaks, you get one short line per session

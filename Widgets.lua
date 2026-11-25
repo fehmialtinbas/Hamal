@@ -12,7 +12,10 @@ end
 function Widgets.ShowItemTooltip(owner, item, hint)
   GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
   if type(item) == "table" and item.bag then
+    -- Hamal's own icons already say where the item goes: no "Hamal: goes to" line here.
+    Widgets.ownTooltip = true
     GameTooltip:SetBagItem(item.bag, item.slot)
+    Widgets.ownTooltip = false
   else
     GameTooltip:SetItemByID(type(item) == "table" and item.itemID or item)
   end

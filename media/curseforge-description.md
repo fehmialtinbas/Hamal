@@ -29,9 +29,9 @@ another.
   time, **Shift-click** to never send that item.
 - **Lowest postage:** partial stacks are combined before mailing (7 + 12 + 5 Linen Cloth become
   20 + 4). Hamal measures the game's own postage and sends the fewest stacks and mails possible.
-- **See what's going:** stacks about to be mailed look greyed out in the game's bags, and an
-  item's tooltip names the bank alt that gets it. The tooltip line works with bag addons such as
-  Bagnon too.
+- **See what's going:** stacks about to be mailed look greyed out in the game's bags. Hover any
+  item in your bags, at the mailbox or not, and its tooltip names the bank alt that gets it. The
+  tooltip line works with bag addons such as Bagnon too.
 - **Optional:** send everything as soon as you open a mailbox.
 
 ## Settings
@@ -51,7 +51,8 @@ Drag single items onto **Always send these items**, and give a bank alt a one-wo
 now. Click one to choose: follow item types, always send to a bank alt, or never send.
 
 **Options.** Fill the mail when you type a name, send every mail with one click, send when the
-mailbox opens, combine stacks, the never-send list, the minimap button, and the look.
+mailbox opens, combine stacks, the never-send list, the tooltip line, the minimap button, and the
+look.
 
 ## Your items never go to anyone else
 
@@ -78,7 +79,8 @@ alt yourself.
 
 ## Light and quiet
 
-Nothing runs while you play away from a mailbox. No chat messages at login and no error popups:
+Nothing runs while you play away from a mailbox, except one quick check when you hover an item
+in your bags. No chat messages at login and no error popups:
 if something ever breaks, you get one short line, and `/hamal status` shows the details.
 
 ## Commands

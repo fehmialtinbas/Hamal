@@ -1,22 +1,25 @@
 local _, ns = ...
 
--- While a mailbox is open: items about to be mailed look greyed out in the game's own
--- bags, and an item's tooltip says which bank alt it goes to.
+-- Where your items go, shown where you look at them:
+--   * the tooltip of an item in your bags says which bank alt gets it ("Hamal: goes to
+--     Vault Keeper"), at the mailbox or not (Options can switch this off);
+--   * while a mailbox is open, stacks about to be mailed look greyed out in the game's
+--     own bags.
 --
 -- Bag addons (Bagnon, Baganator, AdiBags, ElvUI...) draw bags of their own. Hamal reads
--- none of their frames, so they get no grey marks; the tooltip line works with all of
--- them, because it hooks the game's tooltip, not a bag.
+-- none of their frames, so they get no grey marks; the tooltip line works with them,
+-- because it hooks the game's tooltip, not a bag.
 --
--- Nothing here runs away from a mailbox: the maps are empty and every hook returns at
--- once. At the mailbox, the bag buttons are walked once per refresh (already merged
--- into one per frame by UI.RequestRefresh).
+-- Away from a mailbox the only work is on hovering an item in your bags: that one slot
+-- is read and checked against your rules. At the mailbox the bag buttons are walked once
+-- per refresh (already merged into one per frame by UI.RequestRefresh).
 local BagMarks = {}
 ns.BagMarks = BagMarks
 
 -- Drawn between the item's icon and its stack count, so the count stays readable.
 local SHADE = { 0.08, 0.08, 0.08, 0.72 }
 
-local slots, items = nil, nil -- [SlotKey] = bank alt key, [itemID] = bank alt key
+local slots = nil -- while a mailbox is open: [SlotKey] = bank alt key
 local marks = setmetatable({}, { __mode = "k" }) -- [bag button] = our texture
 local hookedFrames = {}
 BagMarks.marks = marks
@@ -99,9 +102,9 @@ local function hookFrames()
   end
 end
 
--- What goes where right now (from Scanner.Summary). A stack left out of the running
+-- What this mailbox visit sends (from Scanner.Summary). A stack left out of the running
 -- session stays in the bags, so it isn't marked.
-function BagMarks.Update(slotMap, itemMap, session)
+function BagMarks.Update(slotMap, session)
   if session then
     local queued = {}
     for _, item in ipairs(session.queue) do
@@ -111,47 +114,42 @@ function BagMarks.Update(slotMap, itemMap, session)
       if key == session.key and not queued[slotKey] then slotMap[slotKey] = nil end
     end
   end
-  slots, items = slotMap, itemMap
+  slots = slotMap
   hookFrames()
   BagMarks.Apply()
 end
 
 function BagMarks.Clear()
-  slots, items = nil, nil
+  slots = nil
   for _, mark in pairs(marks) do
     mark:Hide()
   end
 end
 
--- The bank alt an item goes to, while a mailbox is open.
-function BagMarks.Destination(itemID)
-  return items and itemID and items[itemID]
+-- The bank alt the stack in this bag slot goes to, or nil.
+function BagMarks.Destination(bag, slot)
+  local db = ns.db
+  if not db or not bag or not slot then return nil end
+  -- At the mailbox: what this visit will really send.
+  if slots then return slots[ns.Scanner.SlotKey(bag, slot)] end
+  if not ns.Scanner.IsMailBag(bag) then return nil end -- the bank, for one
+  local item = ns.Scanner.ReadSlot(bag, slot)
+  local key = item and ns.Rules.Resolve(item, db)
+  if not key or key == ns.NormalizeName(ns.PlayerName()) then return nil end
+  return key
 end
 
-local function addTooltipLine(tooltip, itemID)
-  if not items or tooltip ~= GameTooltip then return end
-  local key = BagMarks.Destination(itemID)
-  local mule = key and ns.db and ns.db.mules[key]
+local function onBagItemTooltip(tooltip, bag, slot)
+  if ns.Widgets.ownTooltip or not (ns.db and ns.db.options.bagTooltips) then return end
+  local key = BagMarks.Destination(bag, slot)
+  local mule = key and ns.db.mules[key]
   if not mule then return end
   tooltip:AddLine(("Hamal: goes to %s"):format(mule.name), 0.9, 0.72, 0.36)
-end
-
-local function itemIDFromLink(link)
-  return link and tonumber(link:match("item:(%d+)"))
+  tooltip:Show() -- fit the new line
 end
 
 ns.OnInit(function()
-  local types = Enum and Enum.TooltipDataType
-  if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and types and types.Item then
-    TooltipDataProcessor.AddTooltipPostCall(types.Item, ns.Safely(function(tooltip, data)
-      addTooltipLine(tooltip, data and data.id)
-    end))
-  elseif GameTooltip and GameTooltip.HookScript then
-    -- Older clients; pcall because a client without this script would raise an error.
-    pcall(GameTooltip.HookScript, GameTooltip, "OnTooltipSetItem", ns.Safely(function(tooltip)
-      if not items then return end
-      local _, link = tooltip:GetItem()
-      addTooltipLine(tooltip, itemIDFromLink(link))
-    end))
+  if GameTooltip and GameTooltip.SetBagItem then
+    hooksecurefunc(GameTooltip, "SetBagItem", ns.Safely(onBagItemTooltip))
   end
 end)

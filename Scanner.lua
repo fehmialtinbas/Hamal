@@ -16,6 +16,14 @@ local function bagList()
   return bags
 end
 
+-- Is this one of the bags Hamal mails from (not the bank)?
+function Scanner.IsMailBag(bag)
+  for _, b in ipairs(bagList()) do
+    if b == bag then return true end
+  end
+  return false
+end
+
 function Scanner.ItemClass(itemID)
   local getInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
   if not getInstant then return nil, nil end
@@ -94,11 +102,11 @@ end
 -- For every active bank alt, in one pass over the bags:
 --   stacks     stacks waiting for it now
 --   minStacks  stacks once partial stacks are combined (see Stacker.lua)
--- Also returns where each outgoing stack goes ([SlotKey] = bank alt key) and the bank
--- alt of each outgoing item ([itemID] = key), for the bag marks and tooltips.
+-- Also returns where each outgoing stack goes ([SlotKey] = bank alt key), for the bag
+-- marks and tooltips at the mailbox.
 function Scanner.Summary(db)
   local keys = ns.Mules.ActiveKeys(db)
-  local summary, perItem, slots, items = {}, {}, {}, {}
+  local summary, perItem, slots = {}, {}, {}
   for _, key in ipairs(keys) do
     summary[key] = { stacks = 0, minStacks = 0 }
     perItem[key] = {}
@@ -107,7 +115,6 @@ function Scanner.Summary(db)
     local key = ns.Rules.Resolve(item, db, keys)
     if key then
       slots[Scanner.SlotKey(item.bag, item.slot)] = key
-      items[item.itemID] = key
       summary[key].stacks = summary[key].stacks + 1
       local totals = perItem[key][item.itemID]
       if not totals then
@@ -118,9 +125,9 @@ function Scanner.Summary(db)
       totals.stacks = totals.stacks + 1
     end
   end)
-  for key, items in pairs(perItem) do
+  for key, totalsByItem in pairs(perItem) do
     local min = 0
-    for itemID, totals in pairs(items) do
+    for itemID, totals in pairs(totalsByItem) do
       local max = ns.Stacker.MaxStack(itemID)
       if max and max > 0 then
         min = min + math.min(totals.stacks, math.ceil(totals.count / max))
@@ -130,7 +137,7 @@ function Scanner.Summary(db)
     end
     summary[key].minStacks = min
   end
-  return summary, slots, items
+  return summary, slots
 end
 
 -- Stack counts for every active bank alt in one pass.

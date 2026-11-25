@@ -1,5 +1,10 @@
 # Hamal
 
+## v0.1.5
+
+- The tooltip line works away from the mailbox too: hover an item in your bags to see which bank
+  alt gets it. Switch it off under Options.
+
 ## v0.1.4
 
 - While the mailbox is open, stacks about to be mailed look greyed out in the game's own bags,

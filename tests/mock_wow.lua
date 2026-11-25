@@ -184,12 +184,6 @@ function World:installGlobals()
     -- A test can take the game-rule list away (w.noGameRules) to see Hamal stay safe.
     GameRule = not w.noGameRules and { HardcoreRuleset = 10, PvPRuleset = 213, RPRuleset = 214 } or nil,
     PlayerInteractionType = { MailInfo = 17 },
-    TooltipDataType = { Item = 0 },
-  }
-  -- Newer clients let addons add lines to every item tooltip (World:HoverItem).
-  w.tooltipPostCalls = {}
-  _G.TooltipDataProcessor = {
-    AddTooltipPostCall = function(kind, fn) table.insert(w.tooltipPostCalls, { kind = kind, fn = fn }) end,
   }
   _G.unpack = unpack -- the game's Lua 5.1 has it as a global
   _G.C_AddOns = { GetAddOnMetadata = function() return "@project-version@" end }
@@ -476,13 +470,12 @@ function World:Flush()
   end
 end
 
--- The lines Hamal adds to the game's tooltip of an item, e.g. in a bag addon's window.
-function World:HoverItem(itemID)
+-- Hover an item in the bags (the game's or a bag addon's: both show it with
+-- GameTooltip:SetBagItem) and get the lines added to its tooltip.
+function World:HoverBagItem(bag, slot)
   local tooltip = _G.GameTooltip
   tooltip:ClearLines()
-  for _, call in ipairs(self.tooltipPostCalls) do
-    if call.kind == _G.Enum.TooltipDataType.Item then call.fn(tooltip, { id = itemID }) end
-  end
+  tooltip:SetBagItem(bag, slot)
   return table.concat(tooltip.lines, "\n")
 end
 

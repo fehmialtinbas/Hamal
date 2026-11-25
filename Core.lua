@@ -138,6 +138,7 @@ local DEFAULTS = {
     autoSendOnOpen = false, -- send to every bank alt as soon as a mailbox opens
     stackFirst = true,      -- combine partial stacks of outgoing items before mailing
     look = "game",          -- "game" or "dark" (see Theme.lua)
+    bagTooltips = true,     -- "Hamal: goes to ..." in the tooltip of items in your bags
   },
 }
 

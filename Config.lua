@@ -680,8 +680,10 @@ local function buildOptionsTab(pane)
     ns.Theme.SetLook(self:GetChecked() and "dark" or "game")
   end)
   ui.darkCheck.label:SetText("Dark, plain look (sits well with UI suites such as DaylightUI or ElvUI)")
+  ui.tooltipCheck = checkBox(pane, LEFT, -192, labelWidth, option("bagTooltips"))
+  ui.tooltipCheck.label:SetText("Say which bank alt gets an item in its tooltip, for items in my bags")
 
-  local excludeY = -222
+  local excludeY = -250
   text(pane, "Never send (any bank alt)", "GameFontNormal", LEFT, excludeY + 18)
   ui.excludeDrop = dropZone(pane, LEFT, excludeY, "Drag an item here to keep it in your bags.", addExclude)
   ui.excludeMore = text(pane, "", "GameFontDisableSmall", LEFT, excludeY - 2 * (ICON + ICON_GAP))
@@ -725,6 +727,7 @@ local function refreshOptions(db)
   ui.stackCheck:SetChecked(db.options.stackFirst)
   ui.minimapCheck:SetChecked(not (db.minimap and db.minimap.hide))
   ui.darkCheck:SetChecked(db.options.look == "dark")
+  ui.tooltipCheck:SetChecked(db.options.bagTooltips)
   layoutIcons(panes.options, ui.excludeButtons, ns.SortedIDs(db.exclude), LEFT + ICON + 8, ui.excludeY,
     removeExclude, ui.excludeMore)
 end

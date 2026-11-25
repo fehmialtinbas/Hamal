@@ -266,7 +266,7 @@ function UI.Refresh()
   for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
     if key ~= me then keys[#keys + 1] = key end
   end
-  local summary, slotMap, itemMap = ns.Scanner.Summary(db)
+  local summary, slotMap = ns.Scanner.Summary(db)
   local counts = {}
   for key, s in pairs(summary) do counts[key] = s.stacks end
   local session = ns.Mailer.session
@@ -276,10 +276,7 @@ function UI.Refresh()
   for slotKey, key in pairs(slotMap) do
     if key == me then slotMap[slotKey] = nil end
   end
-  for itemID, key in pairs(itemMap) do
-    if key == me then itemMap[itemID] = nil end
-  end
-  ns.BagMarks.Update(slotMap, itemMap, session)
+  ns.BagMarks.Update(slotMap, session)
 
   local y = -PAD - 20
   local pendingAlts = ns.Mailer.PendingAlts(counts)
