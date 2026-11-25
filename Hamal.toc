@@ -4,7 +4,7 @@
 ## Author: fehmialtinbas
 ## Version: @project-version@
 ## SavedVariables: HamalDB
-## IconTexture: Interface\Icons\INV_Letter_15
+## IconTexture: Interface\AddOns\Hamal\Textures\Logo
 ## AddonCompartmentFunc: Hamal_OnAddonCompartmentClick
 ## X-Website: https://github.com/fehmialtinbas/Hamal
 ## X-Curse-Project-ID: 1827061
@@ -21,6 +21,7 @@ Mailer.lua
 Theme.lua
 Widgets.lua
 UI.lua
+BagMarks.lua
 Config.lua
 MinimapButton.lua
 Commands.lua

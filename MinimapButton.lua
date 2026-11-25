@@ -107,9 +107,11 @@ function Button.Create()
   background:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
   background:SetPoint("CENTER")
   local icon = button:CreateTexture(nil, "ARTWORK")
-  icon:SetSize(18, 18)
-  icon:SetTexture("Interface\\Icons\\INV_Letter_15")
+  icon:SetSize(20, 20)
+  -- Hamal's logo; the game's letter icon if the client can't load it.
+  if icon:SetTexture(ns.LOGO) == false then icon:SetTexture("Interface\\Icons\\INV_Letter_15") end
   icon:SetPoint("CENTER")
+  Button.icon = icon
   local border = button:CreateTexture(nil, "OVERLAY")
   border:SetSize(53, 53)
   border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")

@@ -70,4 +70,8 @@ read_globals = {
   "SetSendMailMoney",
   "UnitName",
   "hooksecurefunc",
+  -- Bag marks and the tooltip line (BagMarks.lua).
+  "ContainerFrameCombinedBags",
+  "NUM_CONTAINER_FRAMES",
+  "TooltipDataProcessor",
 }

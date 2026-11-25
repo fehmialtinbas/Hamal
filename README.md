@@ -70,6 +70,11 @@ its items, one after another. With "send as soon as I open a mailbox" on, this h
 The button shows what it will take before you press it, e.g. `Send all: 6 mail(s), ~21s 60c`;
 hover it for the count per bank alt.
 
+**What's going.** While the mailbox is open, stacks about to be mailed look greyed out in the
+game's own bags, and an item's tooltip says which bank alt gets it (`Hamal: goes to Vault Keeper`).
+Bag addons such as Bagnon draw bags of their own, so they show no grey marks, but the tooltip line
+works there too. A stack you leave out of the mail isn't greyed.
+
 **How many items per mail.** A mail takes 12 stacks (Hamal reads the limit from the game). Hamal
 queues every outgoing stack, fills a mail, sends it, and fills the next one when the server confirms,
 until the queue is empty: 100 stacks go as 12 + 12 + ... + 4. Before that, partial stacks of the
@@ -157,6 +162,8 @@ the panel's buttons.
 - Nothing runs every frame, and nothing runs while you play away from a mailbox: looting and
   moving items cost Hamal nothing.
 - At the mailbox, bursts of bag and attachment events are merged into one refresh.
+- The grey bag marks and the tooltip line work only while a mailbox is open; away from it the
+  tooltip hook returns at once.
 - Item names for the Items tab are asked from the server only for the rows on screen, and item
   events are only listened to while that tab is open.
 - No chat messages at login. If something in Hamal ever breaks, you get one short line per session

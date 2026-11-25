@@ -7,10 +7,14 @@ local Mock = {}
 -- Widgets -----------------------------------------------------------------------
 
 local Frame = {}
+-- Methods only some widgets have, which Hamal checks for before calling: absent unless
+-- a test adds them to a frame.
+local ABSENT = { EnumerateValidItems = true, GetBagID = true }
 local FrameMT = {
   __index = function(_, key)
     local method = Frame[key]
     if method then return method end
+    if ABSENT[key] then return nil end
     -- Layout and styling methods we don't model (SetPoint, SetBackdrop...) are no-ops;
     -- plain fields (lowercase) stay nil.
     if type(key) == "string" and key:match("^%u") then
@@ -84,6 +88,9 @@ function Frame:GetEffectiveScale()
 end
 function Frame:SetChecked(on) self.checked = not not on end
 function Frame:GetChecked() return self.checked == true end
+function Frame:GetName() return self.name end
+function Frame:SetID(id) self.id = id end
+function Frame:GetID() return self.id or 0 end
 function Frame:CreateTexture() return Mock.newFrame("Texture", nil, self) end
 function Frame:IsVisible()
   if not self.shown then return false end
@@ -177,6 +184,12 @@ function World:installGlobals()
     -- A test can take the game-rule list away (w.noGameRules) to see Hamal stay safe.
     GameRule = not w.noGameRules and { HardcoreRuleset = 10, PvPRuleset = 213, RPRuleset = 214 } or nil,
     PlayerInteractionType = { MailInfo = 17 },
+    TooltipDataType = { Item = 0 },
+  }
+  -- Newer clients let addons add lines to every item tooltip (World:HoverItem).
+  w.tooltipPostCalls = {}
+  _G.TooltipDataProcessor = {
+    AddTooltipPostCall = function(kind, fn) table.insert(w.tooltipPostCalls, { kind = kind, fn = fn }) end,
   }
   _G.unpack = unpack -- the game's Lua 5.1 has it as a global
   _G.C_AddOns = { GetAddOnMetadata = function() return "@project-version@" end }
@@ -360,8 +373,14 @@ function World:installGlobals()
     end
   end
 
+  -- No bag windows until a test shows some (World:ShowCombinedBags, World:ShowBagWindow).
+  _G.ContainerFrameCombinedBags = nil
+  for i = 1, 13 do _G["ContainerFrame" .. i] = nil end
   _G.UIParent = Mock.newFrame("Frame", "UIParent")
   _G.GameTooltip = Mock.newFrame("GameTooltip", "GameTooltip", _G.UIParent)
+  _G.GameTooltip.lines = {}
+  rawset(_G.GameTooltip, "AddLine", function(self, text) table.insert(self.lines, text) end)
+  rawset(_G.GameTooltip, "ClearLines", function(self) self.lines = {} end)
   -- A 140 x 140 minimap centred at (1800, 900), and the cursor a test can move.
   _G.Minimap = Mock.newFrame("Frame", "Minimap", _G.UIParent)
   _G.Minimap:SetSize(140, 140)
@@ -455,6 +474,53 @@ function World:Flush()
     local fn = table.remove(self.timers, 1)
     fn()
   end
+end
+
+-- The lines Hamal adds to the game's tooltip of an item, e.g. in a bag addon's window.
+function World:HoverItem(itemID)
+  local tooltip = _G.GameTooltip
+  tooltip:ClearLines()
+  for _, call in ipairs(self.tooltipPostCalls) do
+    if call.kind == _G.Enum.TooltipDataType.Item then call.fn(tooltip, { id = itemID }) end
+  end
+  return table.concat(tooltip.lines, "\n")
+end
+
+local function bagButton(name, parent, bag, slot)
+  local button = Mock.newFrame("Button", name, parent)
+  button:SetID(slot)
+  if bag then rawset(button, "GetBagID", function() return bag end) end
+  return button
+end
+
+-- The combined backpack of newer clients: one window, buttons that know their bag.
+function World:ShowCombinedBags(shown)
+  local frame = Mock.newFrame("Frame", "ContainerFrameCombinedBags", _G.UIParent)
+  frame.shown = false
+  local buttons = {}
+  for bag = 0, 4 do
+    for slot = 1, self.bagSize[bag] do
+      buttons[#buttons + 1] = bagButton(nil, frame, bag, slot)
+    end
+  end
+  rawset(frame, "EnumerateValidItems", function() return ipairs(buttons) end)
+  frame.buttons = buttons
+  if shown ~= false then frame:Show() end
+  return frame
+end
+
+-- One window per bag (older clients): ContainerFrame1Item1..., the bag is the window's ID.
+function World:ShowBagWindow(index, bag)
+  local name = "ContainerFrame" .. index
+  local frame = Mock.newFrame("Frame", name, _G.UIParent)
+  frame:SetID(bag)
+  frame.size = self.bagSize[bag]
+  frame.buttons = {}
+  for slot = 1, frame.size do
+    -- The game numbers them from the bottom: Item1 is the last slot.
+    frame.buttons[slot] = bagButton(name .. "Item" .. (frame.size - slot + 1), frame, nil, slot)
+  end
+  return frame
 end
 
 function World:OpenMailbox()

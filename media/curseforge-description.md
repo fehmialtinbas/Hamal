@@ -29,6 +29,9 @@ another.
   time, **Shift-click** to never send that item.
 - **Lowest postage:** partial stacks are combined before mailing (7 + 12 + 5 Linen Cloth become
   20 + 4). Hamal measures the game's own postage and sends the fewest stacks and mails possible.
+- **See what's going:** stacks about to be mailed look greyed out in the game's bags, and an
+  item's tooltip names the bank alt that gets it. The tooltip line works with bag addons such as
+  Bagnon too.
 - **Optional:** send everything as soon as you open a mailbox.
 
 ## Settings

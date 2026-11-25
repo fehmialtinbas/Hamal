@@ -86,12 +86,19 @@ function Scanner.Collect(db, targetKey)
   return out
 end
 
+-- Where a bag slot's stack goes, as one number key: bag * 1000 + slot.
+function Scanner.SlotKey(bag, slot)
+  return bag * 1000 + slot
+end
+
 -- For every active bank alt, in one pass over the bags:
 --   stacks     stacks waiting for it now
 --   minStacks  stacks once partial stacks are combined (see Stacker.lua)
+-- Also returns where each outgoing stack goes ([SlotKey] = bank alt key) and the bank
+-- alt of each outgoing item ([itemID] = key), for the bag marks and tooltips.
 function Scanner.Summary(db)
   local keys = ns.Mules.ActiveKeys(db)
-  local summary, perItem = {}, {}
+  local summary, perItem, slots, items = {}, {}, {}, {}
   for _, key in ipairs(keys) do
     summary[key] = { stacks = 0, minStacks = 0 }
     perItem[key] = {}
@@ -99,6 +106,8 @@ function Scanner.Summary(db)
   Scanner.EachItem(function(item)
     local key = ns.Rules.Resolve(item, db, keys)
     if key then
+      slots[Scanner.SlotKey(item.bag, item.slot)] = key
+      items[item.itemID] = key
       summary[key].stacks = summary[key].stacks + 1
       local totals = perItem[key][item.itemID]
       if not totals then
@@ -121,7 +130,7 @@ function Scanner.Summary(db)
     end
     summary[key].minStacks = min
   end
-  return summary
+  return summary, slots, items
 end
 
 -- Stack counts for every active bank alt in one pass.

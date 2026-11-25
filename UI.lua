@@ -103,6 +103,7 @@ end
 
 function UI.Hide()
   if panel then panel:Hide() end
+  if ns.BagMarks then ns.BagMarks.Clear() end
 end
 
 function UI.Create()
@@ -133,8 +134,9 @@ function UI.Create()
   ns.Theme.Frame(panel, "panel")
 
   local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  title:SetPoint("TOP", 0, -PAD)
+  title:SetPoint("TOP", 10, -PAD)
   title:SetText("Hamal")
+  UI.logo = ns.Logo(panel, title, 16)
 
   status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   status:SetWidth(WIDTH - 2 * PAD)
@@ -264,11 +266,20 @@ function UI.Refresh()
   for _, key in ipairs(ns.Mules.ActiveKeys(db)) do
     if key ~= me then keys[#keys + 1] = key end
   end
-  local summary = ns.Scanner.Summary(db)
+  local summary, slotMap, itemMap = ns.Scanner.Summary(db)
   local counts = {}
   for key, s in pairs(summary) do counts[key] = s.stacks end
   local session = ns.Mailer.session
   local busy = (session and session.sending) or ns.Mailer.stacking ~= nil
+
+  -- A bank alt's own rules don't send anything from itself.
+  for slotKey, key in pairs(slotMap) do
+    if key == me then slotMap[slotKey] = nil end
+  end
+  for itemID, key in pairs(itemMap) do
+    if key == me then itemMap[itemID] = nil end
+  end
+  ns.BagMarks.Update(slotMap, itemMap, session)
 
   local y = -PAD - 20
   local pendingAlts = ns.Mailer.PendingAlts(counts)

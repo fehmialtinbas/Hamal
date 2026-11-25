@@ -34,6 +34,18 @@ end
 -- Where the source code and bug reports live (also in the .toc as X-Website).
 ns.WEBSITE = "https://github.com/fehmialtinbas/Hamal"
 
+-- Hamal's logo: Textures/Logo.tga, drawn by media/make_logo.py (also the .toc's IconTexture).
+ns.LOGO = "Interface\\AddOns\\" .. addonName .. "\\Textures\\Logo"
+
+-- A small logo just left of a window title.
+function ns.Logo(parent, title, size)
+  local logo = parent:CreateTexture(nil, "OVERLAY")
+  logo:SetSize(size, size)
+  logo:SetTexture(ns.LOGO)
+  logo:SetPoint("RIGHT", title, "LEFT", -4, 0)
+  return logo
+end
+
 local PREFIX = "|cffe6b85cHamal|r: "
 
 function ns.Print(fmt, ...)

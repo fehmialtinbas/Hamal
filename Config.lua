@@ -760,8 +760,9 @@ function Config.Create()
   table.insert(UISpecialFrames, "HamalConfig") -- Esc closes it
 
   local title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  title:SetPoint("TOP", 0, -16)
+  title:SetPoint("TOP", 11, -16)
   title:SetText("Hamal")
+  Config.logo = ns.Logo(frame, title, 18)
 
   for i, tab in ipairs(TABS) do
     local b = button(frame, tab.label, 110, LEFT + 4 + (i - 1) * 114, -36, function(self) Config.ShowTab(self.tab) end)

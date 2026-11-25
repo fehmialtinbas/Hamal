@@ -1,5 +1,12 @@
 # Hamal
 
+## v0.1.4
+
+- While the mailbox is open, stacks about to be mailed look greyed out in the game's own bags,
+  and an item's tooltip says which bank alt it goes to. Bag addons such as Bagnon draw their own
+  bags, so they get the tooltip line but not the grey marks.
+- Hamal's logo on the minimap button, in the window titles and in the game's addon list.
+
 ## v0.1.3
 
 - Quest items that aren't soulbound, such as Torn Bear Pelt (a Darkmoon Faire turn-in), can be

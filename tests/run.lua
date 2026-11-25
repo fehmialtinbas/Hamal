@@ -17,5 +17,6 @@ require("spec_ingame")
 require("spec_otherwindows")
 require("spec_access")
 require("spec_look")
+require("spec_bagmarks")
 
 os.exit(T.report() and 0 or 1)

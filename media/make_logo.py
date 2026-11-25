@@ -1,7 +1,10 @@
 """Draws Hamal's project logo: a gold letter with a wax seal, flying to the right.
 
-Run: python3 media/make_logo.py  ->  media/hamal-logo.png (1024 x 1024)
-Drawn at 3x and scaled down so the edges come out smooth. Not shipped with the addon.
+Run: python3 media/make_logo.py  ->  media/hamal-logo.png (1024 x 1024, the CurseForge logo)
+                                     Textures/Logo.tga (64 x 64, the in-game icon)
+Drawn at 3x and scaled down so the edges come out smooth. The PNG is not shipped with
+the addon; the TGA is: just the letter on a clear background, no speed lines, so it reads
+at minimap size.
 """
 import os
 
@@ -64,6 +67,7 @@ bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(s(110))))
 
 # The letter, drawn level and then tilted.
 layer = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+lines = Image.new("RGBA", (W, W), (0, 0, 0, 0))
 EX0, EY0, EX1, EY1 = 320, 320, 860, 690
 CX = (EX0 + EX1) / 2
 TIP = EY0 + (EY1 - EY0) * 0.56
@@ -79,7 +83,7 @@ for y, length, strength in ((EY0 + 80, 190, 1.0), (EY0 + 185, 240, 0.8), (EY0 + 
     a = np.asarray(bar, np.float32) * np.broadcast_to(fade, (W, W))
     col = np.zeros((W, W, 4), np.float32)
     col[..., 0], col[..., 1], col[..., 2], col[..., 3] = 236, 190, 98, a
-    layer.alpha_composite(rgba(col))
+    lines.alpha_composite(rgba(col))
 
 body = mask_of(lambda dr: dr.rounded_rectangle(box(EX0, EY0, EX1, EY1), radius=s(34), fill=255))
 fill(layer, body, vertical_gradient(GOLD_TOP, GOLD_BOTTOM, EY0, EY1))
@@ -116,6 +120,10 @@ letter_h(3, 4, (70, 14, 10, 255))
 letter_h(0, 0, (243, 207, 120, 255))
 
 layer = layer.rotate(9, resample=Image.BICUBIC, center=(s(CX), s((EY0 + EY1) / 2)))
+lines = lines.rotate(9, resample=Image.BICUBIC, center=(s(CX), s((EY0 + EY1) / 2)))
+letter = layer
+layer = lines.copy()
+layer.alpha_composite(letter)
 
 # Soft shadow under the letter.
 alpha = layer.getchannel("A").point(lambda v: v * 0.55)
@@ -128,3 +136,16 @@ bg.alpha_composite(layer)
 out = bg.convert("RGB").resize((SIZE, SIZE), Image.LANCZOS)
 out.save(os.path.join(HERE, "hamal-logo.png"), optimize=True)
 print("wrote", os.path.join(HERE, "hamal-logo.png"))
+
+# In-game icon: the letter alone, centred on a clear square with a small margin. The game
+# wants power-of-two sizes; resized premultiplied so the edges don't go dark.
+ICON = 64
+x0, y0, x1, y1 = letter.getchannel("A").getbbox()
+side = int(max(x1 - x0, y1 - y0) * 1.06)
+square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+square.alpha_composite(letter.crop((x0, y0, x1, y1)), ((side - (x1 - x0)) // 2, (side - (y1 - y0)) // 2))
+icon = square.convert("RGBa").resize((ICON, ICON), Image.LANCZOS).convert("RGBA")
+textures = os.path.join(HERE, "..", "Textures")
+os.makedirs(textures, exist_ok=True)
+icon.save(os.path.join(textures, "Logo.tga"))
+print("wrote", os.path.normpath(os.path.join(textures, "Logo.tga")))
