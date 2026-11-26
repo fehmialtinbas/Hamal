@@ -28,11 +28,12 @@ end
 
 -- Where an item goes and why: (bankAltKey, reason) or (nil, reason).
 -- reason is "item" (picked by hand), a category key, "never", "kept", "bound", "quest"
--- (a quest-type item nobody picked) or "none".
+-- (a quest-type item nobody picked), "held" (Alt-clicked at this mailbox visit) or "none".
 function Items.Destination(db, entry, keys)
   if ns.Rules.ALWAYS_KEEP[entry.itemID] then return nil, "kept" end
   if db.exclude[entry.itemID] then return nil, "never" end
   if entry.isBound then return nil, "bound" end
+  if ns.Rules.held[entry.itemID] then return nil, "held" end
   local key, reason = ns.Rules.Resolve({
     itemID = entry.itemID, classID = entry.classID, subclassID = entry.subclassID, quality = entry.quality,
     isCraftingReagent = entry.isCraftingReagent,
@@ -42,8 +43,80 @@ function Items.Destination(db, entry, keys)
   return nil, "none"
 end
 
+-- Groups on the Items tab: trade goods and consumables by their kind (Cloth, Herb, Metal &
+-- Stone, Potion...), everything else by its class (Weapon, Armor, Recipe...). The names
+-- come from the game, in the player's language. Trade goods come first: they are what
+-- bank alts mostly get.
+local GROUP_RANK = { [7] = 1, [0] = 2, [3] = 3, [9] = 4, [5] = 5, [2] = 6, [4] = 7, [1] = 8, [12] = 9, [15] = 10 }
+local BY_KIND = { [7] = true, [0] = true }
+local groupNames = {}
+
+local function groupName(classID, subclassID)
+  local key = subclassID and (classID .. ":" .. subclassID) or tostring(classID)
+  local name = groupNames[key]
+  if name == nil then
+    if subclassID then
+      local getSub = (C_Item and C_Item.GetItemSubClassInfo) or GetItemSubClassInfo
+      name = getSub and getSub(classID, subclassID) or nil
+    else
+      local getClass = (C_Item and C_Item.GetItemClassInfo) or GetItemClassInfo
+      name = getClass and getClass(classID) or nil
+    end
+    name = name or false
+    groupNames[key] = name
+  end
+  return name or nil
+end
+
+-- (group key, group name, rank) of an item, from its class and subclass.
+function Items.GroupOf(entry)
+  local classID, subclassID = entry.classID, entry.subclassID
+  if not classID then return "other", "Other", 99 end
+  local rank = GROUP_RANK[classID] or (20 + classID)
+  if BY_KIND[classID] and subclassID then
+    local name = groupName(classID, subclassID) or groupName(classID) or "Other"
+    return classID .. ":" .. subclassID, name, rank
+  end
+  return tostring(classID), groupName(classID) or "Other", rank
+end
+
+-- The "Show" buttons of the Items tab.
+local SHOW = {
+  all = function() return true end,
+  going = function(e) return e.destination ~= nil end,
+  -- Could be mailed, but no rule sends it. Soulbound items, the Hearthstone and tools
+  -- can't go at all, so they aren't listed here.
+  staying = function(e)
+    return e.destination == nil and (e.reason == "none" or e.reason == "quest" or e.reason == "held")
+  end,
+  never = function(e) return e.reason == "never" end,
+}
+
+function Items.IsShow(show)
+  return SHOW[show] ~= nil
+end
+
+function Items.Shows(entry, show)
+  return (SHOW[show] or SHOW.all)(entry)
+end
+
+-- The list as the Items tab draws it: a header row ({ header = true, label, count })
+-- before each group. `entries` must be in Collect's order.
+function Items.WithHeaders(entries)
+  local out, header = {}, nil
+  for _, e in ipairs(entries) do
+    if not header or header.group ~= e.group then
+      header = { header = true, group = e.group, label = e.groupLabel, count = 0 }
+      out[#out + 1] = header
+    end
+    header.count = header.count + 1
+    out[#out + 1] = e
+  end
+  return out
+end
+
 -- Items in your bags now, items your characters carried before, and items with a rule.
--- In-bag items first, then by name.
+-- Group by group (see GroupOf); in each, in-bag items first, then by name.
 function Items.Collect(db)
   local byID = {}
   local function entry(id)
@@ -86,9 +159,13 @@ function Items.Collect(db)
     e.icon = e.icon or ns.ItemIcon(id)
     e.isBound = (e.boundStacks or 0) > 0 and (e.freeStacks or 0) == 0
     e.destination, e.reason = Items.Destination(db, e, keys)
+    e.group, e.groupLabel, e.groupRank = Items.GroupOf(e)
     list[#list + 1] = e
   end
   table.sort(list, function(a, b)
+    if a.groupRank ~= b.groupRank then return a.groupRank < b.groupRank end
+    if a.groupLabel ~= b.groupLabel then return a.groupLabel < b.groupLabel end
+    if a.group ~= b.group then return a.group < b.group end
     if (a.inBags or false) ~= (b.inBags or false) then return a.inBags == true end
     local an, bn = a.name or "~", b.name or "~"
     if an ~= bn then return an < bn end

@@ -42,6 +42,11 @@ cross realms. Each character records its realm and ruleset when you log in on it
 
 Every item in your bags, every item your characters carried before, and every item with a rule,
 with where it goes right now. Click one to choose: *Follow item types*, *Always send to (bank alt)*, or *Never send*.
+Items are grouped by type (Cloth, Herb, Metal & Stone, Potion, Weapon, ...), trade goods first,
+so ore and bars sit together. The **Show** buttons at the top narrow the list: **Going** (a rule
+sends it to a bank alt), **Staying** (it could go, but no rule sends it yet: handy for finding
+what to add) and **Never** (your never-send list). The list can get long: tick **Only items in my
+bags** at the bottom to see just what you carry now. Hamal remembers both choices.
 
 **Options tab**
 
@@ -50,6 +55,8 @@ with where it goes right now. Click one to choose: *Follow item types*, *Always 
 - Send to every bank alt as soon as you open a mailbox (off by default).
 - The never-send list.
 - Say which bank alt gets an item in its tooltip (on by default).
+- At the mailbox, Alt-click (Option-click on a Mac) an item in your bags to keep it there this
+  time (on by default).
 - At the bottom: the version and the address of the source code and bug reports, in a box you can
   copy from.
 
@@ -76,6 +83,14 @@ says which bank alt gets it (`Hamal: goes to Vault Keeper`); switch this off und
 the mailbox is open, stacks about to be mailed also look greyed out in the game's own bags, and a
 stack you leave out of the mail isn't. Bag addons such as Bagnon draw bags of their own, so they
 show no grey marks, but the tooltip line works there too.
+
+**Keep something this time.** At the mailbox, **Alt-click** an item in your bags (on a Mac:
+**Option-click**, the game's Alt key there; Hamal's texts say Option): every stack of
+it stays in your bags for this visit (its grey mark goes, and Hamal takes it out of a mail it is
+filling). Alt-click it again to send it after all. Closing the mailbox forgets it. This works in
+bag addons too. A plain click stays the game's own (a left-click picks the item up, a right-click
+puts it into the mail), so Hamal uses Alt. Another addon that also does something on Alt-click at
+the mailbox would do it at the same time; switch Hamal's Alt-click off under Options then.
 
 **How many items per mail.** A mail takes 12 stacks (Hamal reads the limit from the game). Hamal
 queues every outgoing stack, fills a mail, sends it, and fills the next one when the server confirms,

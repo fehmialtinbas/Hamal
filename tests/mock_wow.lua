@@ -200,6 +200,14 @@ function World:installGlobals()
   _G.SetSendMailMoney = function() end
   _G.SetSendMailCOD = function() end
   _G.IsShiftKeyDown = function() return w.shift end
+  _G.IsAltKeyDown = function() return w.alt end -- the Option key on a Mac
+  _G.IsMacClient = function() return w.mac == true end
+  _G.IsControlKeyDown = function() return w.ctrl end
+  -- Only answers during a click (World:AltClickBagItem).
+  _G.GetMouseButtonClicked = function() return w.mouseButton end
+  -- The game routes every modified click on an item through this; nothing in the
+  -- default UI takes a plain Alt-click on a bag item.
+  _G.HandleModifiedItemClick = function() return false end
   _G.UISpecialFrames = {}
   _G.YES, _G.NO = "Yes", "No"
   _G.StaticPopupDialogs = {}
@@ -219,6 +227,18 @@ function World:installGlobals()
       return d and d.stack
     end,
     RequestLoadItemDataByID = function() w.calls.request = w.calls.request + 1 end,
+    -- The game's names of item classes and subclasses (only the ones the tests use).
+    GetItemClassInfo = function(classID)
+      return ({ [0] = "Consumable", [2] = "Weapon", [4] = "Armor", [7] = "Trade Goods",
+        [12] = "Quest", [15] = "Miscellaneous" })[classID]
+    end,
+    GetItemSubClassInfo = function(classID, subclassID)
+      local names = {
+        [0] = { [1] = "Potion" },
+        [7] = { [0] = "Trade Goods", [5] = "Cloth", [6] = "Leather", [7] = "Metal & Stone", [9] = "Herb" },
+      }
+      return names[classID] and names[classID][subclassID]
+    end,
     GetItemInfoInstant = function(id)
       local d = w.items[id]
       if not d then return nil end
@@ -375,6 +395,13 @@ function World:installGlobals()
   _G.GameTooltip.lines = {}
   rawset(_G.GameTooltip, "AddLine", function(self, text) table.insert(self.lines, text) end)
   rawset(_G.GameTooltip, "ClearLines", function(self) self.lines = {} end)
+  rawset(_G.GameTooltip, "SetOwner", function(self, owner)
+    self.owner = owner
+    self.lines = {}
+  end)
+  rawset(_G.GameTooltip, "GetOwner", function(self) return self.owner end)
+  -- Like the game: filling the tooltip with an item starts it over.
+  rawset(_G.GameTooltip, "SetBagItem", function(self) self.lines = {} end)
   -- A 140 x 140 minimap centred at (1800, 900), and the cursor a test can move.
   _G.Minimap = Mock.newFrame("Frame", "Minimap", _G.UIParent)
   _G.Minimap:SetSize(140, 140)
@@ -474,9 +501,35 @@ end
 -- GameTooltip:SetBagItem) and get the lines added to its tooltip.
 function World:HoverBagItem(bag, slot)
   local tooltip = _G.GameTooltip
-  tooltip:ClearLines()
+  self.slotOwners = self.slotOwners or {}
+  local key = bag * 1000 + slot
+  self.slotOwners[key] = self.slotOwners[key] or Mock.newFrame("Button", nil, _G.UIParent)
+  tooltip:SetOwner(self.slotOwners[key])
   tooltip:SetBagItem(bag, slot)
+  tooltip:Show()
   return table.concat(tooltip.lines, "\n")
+end
+
+local function itemLink(it)
+  return it and ("|cffffffff|Hitem:%d::::::::|h[item]|h|r"):format(it.itemID) or nil
+end
+
+-- Alt-click on a bag item, with the mouse over it (so its tooltip is up): the game hands
+-- the click to HandleModifiedItemClick. Returns the tooltip lines afterwards.
+function World:AltClickBagItem(bag, slot, mouseButton)
+  self:HoverBagItem(bag, slot)
+  self.alt, self.mouseButton = true, mouseButton or "LeftButton"
+  _G.HandleModifiedItemClick(itemLink(self.bags[bag] and self.bags[bag][slot]))
+  self.alt, self.mouseButton = false, nil
+  return table.concat(_G.GameTooltip.lines, "\n")
+end
+
+-- Alt-click on a chat link of an item: no bag slot under the mouse.
+function World:AltClickLink(itemID)
+  _G.GameTooltip:Hide()
+  self.alt, self.mouseButton = true, "LeftButton"
+  _G.HandleModifiedItemClick(itemLink({ itemID = itemID }))
+  self.alt, self.mouseButton = false, nil
 end
 
 local function bagButton(name, parent, bag, slot)

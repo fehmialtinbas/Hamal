@@ -316,18 +316,13 @@ function Mailer.SessionItems()
   return out
 end
 
--- Leave a stack out of this session. With `forever`, every stack of that item is
--- left out and the item goes on the never-send list.
-function Mailer.Skip(item, forever)
-  local s = Mailer.session
-  if not s or s.sending or not item then return end
-  local function isTarget(other)
-    if forever then return other.itemID == item.itemID end
-    return other == item
-  end
+-- Take the stacks `isTarget` picks out of a session: out of the queue, and out of the
+-- mail form unless that mail is already on its way. Returns whether a mail slot came free.
+local function removeFromSession(s, isTarget)
   for i = #s.queue, 1, -1 do
     if isTarget(s.queue[i]) then table.remove(s.queue, i) end
   end
+  if s.sending then return false end
   local freed = false
   for i, attached in pairs(s.attached) do
     if isTarget(attached) then
@@ -336,6 +331,18 @@ function Mailer.Skip(item, forever)
       freed = true
     end
   end
+  return freed
+end
+
+-- Leave a stack out of this session. With `forever`, every stack of that item is
+-- left out and the item goes on the never-send list.
+function Mailer.Skip(item, forever)
+  local s = Mailer.session
+  if not s or s.sending or not item then return end
+  local freed = removeFromSession(s, function(other)
+    if forever then return other.itemID == item.itemID end
+    return other == item
+  end)
   if forever then
     ns.db.exclude[item.itemID] = true
     ns.Print("%s will never be sent (remove it in /hamal).", item.link or ns.ItemLabel(item.itemID))
@@ -346,6 +353,70 @@ function Mailer.Skip(item, forever)
   end
   if freed and not Mailer.AttachOnSend() then Mailer.AttachNext() end
   refresh()
+end
+
+-- Keeping an item in the bags for this visit (Alt-click in the bags) ------------------
+
+local function releaseHeld()
+  local held = ns.Rules.held
+  for itemID in pairs(held) do held[itemID] = nil end
+end
+
+-- Stacks of `itemID` going to the session's bank alt that it doesn't have yet.
+local function requeue(s, itemID)
+  local known = {}
+  local function note(stacks)
+    for _, other in pairs(stacks or {}) do known[ns.Scanner.SlotKey(other.bag, other.slot)] = true end
+  end
+  note(s.queue)
+  note(s.attached)
+  note(s.inFlight)
+  for _, stack in ipairs(ns.Scanner.Collect(ns.db, s.key)) do
+    if stack.itemID == itemID and not known[ns.Scanner.SlotKey(stack.bag, stack.slot)] then
+      s.queue[#s.queue + 1] = stack
+    end
+  end
+end
+
+-- Keep every stack of a bag item in the bags until the mailbox closes, or let it go
+-- again. `item` is the stack the player Alt-clicked (from Scanner.ReadSlot). A mail
+-- already on its way keeps what it carries. Returns true when something changed.
+function Mailer.ToggleHold(item)
+  local db = ns.db
+  if not db or not item or not item.itemID or not Mailer.IsMailboxOpen() then return false end
+  local held = ns.Rules.held
+  local itemID = item.itemID
+  local label = item.link or ns.ItemLabel(itemID)
+  local s = Mailer.session
+  if held[itemID] then
+    held[itemID] = nil
+    if s then
+      requeue(s, itemID)
+      if not s.sending and not s.awaitingRefill and not Mailer.AttachOnSend() then Mailer.AttachNext() end
+    end
+    ns.Print("%s goes to your bank alt again.", label)
+    refresh()
+    return true
+  end
+  -- Only an item that is going somewhere can be kept. A stack already in the mail form
+  -- is locked in the bags; it counts as going.
+  local probe = {}
+  for k, v in pairs(item) do probe[k] = v end
+  probe.isLocked = false
+  local key = ns.Rules.Resolve(probe, db)
+  if not key or key == ns.NormalizeName(ns.PlayerName()) then return false end
+  held[itemID] = true
+  ns.Print("%s stays in your bags this time. %s it again to send it.", label, ns.AltClick())
+  if s then
+    local freed = removeFromSession(s, function(other) return other.itemID == itemID end)
+    if not s.sending and next(s.attached) == nil and #s.queue == 0 then
+      Mailer.Finish() -- nothing left for this bank alt; Send all goes on to the next one
+      return true
+    end
+    if freed and not s.awaitingRefill and not Mailer.AttachOnSend() then Mailer.AttachNext() end
+  end
+  refresh()
+  return true
 end
 
 -- Sending to every bank alt ------------------------------------------------------
@@ -561,6 +632,7 @@ local mailboxHandled = false
 
 local function onMailboxClosed()
   mailboxHandled = false
+  releaseHeld()
   if ns.UI then ns.UI.Hide() end
   local s = Mailer.session
   Mailer.run = nil
@@ -600,6 +672,7 @@ local OPEN_DELAY = 0.5
 function Mailer.OnMailboxOpened()
   if mailboxHandled then return end
   mailboxHandled = true
+  releaseHeld() -- in case the last visit's close went unreported
   Mailer.HookMailFrame()
   if ns.Items and ns.db then ns.Items.RecordSeen(ns.db) end
   if ns.UI then ns.UI.Show() end

@@ -25,10 +25,15 @@ Rules.ALWAYS_KEEP = {
   [9149] = true,  -- Philosopher's Stone
 }
 
+-- Items kept in the bags for the rest of this mailbox visit (Alt-click in the bags, see
+-- BagMarks.lua): [itemID] = true. Not saved; emptied when the mailbox closes.
+Rules.held = {}
+
 function Rules.IsMailable(item, db)
   if not item or not item.itemID then return false end
   if item.isBound or item.isLocked then return false end
   if Rules.ALWAYS_KEEP[item.itemID] or db.exclude[item.itemID] then return false end
+  if Rules.held[item.itemID] then return false end
   return true
 end
 

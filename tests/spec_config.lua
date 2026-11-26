@@ -40,7 +40,7 @@ end
 
 local function itemRow(ui, itemID)
   for _, row in ipairs(ui.itemRows) do
-    if row:IsShown() and row.entry.itemID == itemID then return row end
+    if row:IsShown() and row.entry and row.entry.itemID == itemID then return row end
   end
 end
 
@@ -215,6 +215,96 @@ T.describe("Settings: items tab", function()
     local row = itemRow(ui, F.LEATHER)
     T.truthy(row, "still listed")
     T.eq(row.count:GetText(), "-")
+  end)
+
+  T.it("shows only what is in your bags when asked, and remembers it", function()
+    local w, ns = F.setup(function(w)
+      w:Put(0, 1, F.LINEN, 20)
+      w:Put(0, 2, F.LEATHER, 10)
+    end)
+    w.bags[0][2] = nil -- the leather was mailed away or sold
+    local ui = open(ns, "items")
+    T.truthy(itemRow(ui, F.LEATHER), "everything Hamal knows at first")
+    T.eq(ui.bagsOnlyCheck:GetChecked(), false, "off by default")
+    w:Click(ui.bagsOnlyCheck)
+    T.eq(ns.db.options.itemsBagsOnly, true, "remembered")
+    T.truthy(itemRow(ui, F.LINEN), "linen is in the bags")
+    T.eq(itemRow(ui, F.LEATHER), nil, "leather is not")
+    ui.searchBox:SetText("leather")
+    T.truthy(ui.emptyItems:IsShown() and ui.emptyItems:GetText():find("No item matches"), "nothing found")
+    ui.searchBox:SetText("")
+    w.bags[0][1] = nil
+    ns.Config.ShowTab("items")
+    T.truthy(ui.emptyItems:IsShown() and ui.emptyItems:GetText():find("Nothing in your bags"), "says why it's empty")
+    w:Click(ui.bagsOnlyCheck)
+    T.truthy(itemRow(ui, F.LEATHER), "everything again")
+  end)
+
+  -- What the list shows, top to bottom: "# Group (n)" for a header, else the item's name.
+  local function listed(ui)
+    local out = {}
+    for _, row in ipairs(ui.itemRows) do
+      if row:IsShown() then
+        if row.entry then
+          out[#out + 1] = row.entry.name
+        else
+          local count = row.name:GetText():match("|cff%x%x%x%x%x%x(%d+)|r$")
+          out[#out + 1] = ("# %s (%s)"):format(row.headerLabel, count)
+        end
+      end
+    end
+    return table.concat(out, ", ")
+  end
+
+  T.it("groups items by type, trade goods first", function()
+    local w, ns = F.setup(function(w)
+      w:Put(0, 1, F.PEACEBLOOM, 5)
+      w:Put(0, 2, F.LINEN, 20)
+      w:Put(0, 3, F.HEALING_POTION, 3)
+      w:Put(0, 4, F.GREEN_SWORD, 1)
+      w:Put(0, 5, F.LEATHER, 10)
+      w:Put(0, 6, F.LINEN, 7)
+    end)
+    w:DefineItem(9001, "Copper Ore", 7, 7)
+    w:DefineItem(9002, "Tin Ore", 7, 7)
+    w:Put(1, 1, 9002, 10)
+    w:Put(1, 2, 9001, 20)
+    local ui = open(ns, "items")
+    T.eq(listed(ui), "# Cloth (1), Linen Cloth, # Herb (1), Peacebloom, # Leather (1), Light Leather, "
+      .. "# Metal & Stone (2), Copper Ore, Tin Ore, # Potion (1), Minor Healing Potion, # Weapon (1), Green Sword")
+    T.eq(itemRow(ui, F.LINEN).count:GetText(), "27", "one row per item, both stacks counted")
+    T.eq(ui.itemsPage:GetText(), "1-7 of 7", "headers don't count as items")
+    w:Click(itemRow(ui, 9002))
+    w:PickMenu("Never send")
+    T.truthy(ns.db.exclude[9002], "an item row still works under its header")
+  end)
+
+  T.it("shows only items going, staying or never sent, and remembers the choice", function()
+    local w, ns = F.setup(function(w)
+      w:Put(0, 1, F.LINEN, 20)
+      w:Put(0, 2, F.PEACEBLOOM, 5)
+      w:Put(0, 3, F.HEARTHSTONE, 1)
+      w:Put(0, 4, F.LEATHER, 10)
+    end)
+    local vault = F.addMule(ns, "Vault Keeper")
+    ns.Mules.ToggleCategory(ns.db, vault, "cloth")
+    ns.Items.SetChoice(ns.db, F.LEATHER, "never")
+    local ui = open(ns, "items")
+    T.eq(listed(ui), "# Cloth (1), Linen Cloth, # Herb (1), Peacebloom, # Leather (1), Light Leather, "
+      .. "# Miscellaneous (1), Hearthstone", "All")
+    w:Click(ui.showButtons.going)
+    T.eq(listed(ui), "# Cloth (1), Linen Cloth", "Going")
+    T.eq(ns.db.options.itemsShow, "going", "remembered")
+    w:Click(ui.showButtons.staying)
+    T.eq(listed(ui), "# Herb (1), Peacebloom", "Staying: could go, but no rule sends it")
+    w:Click(ui.showButtons.never)
+    T.eq(listed(ui), "# Leather (1), Light Leather", "Never")
+    w:Click(itemRow(ui, F.LEATHER))
+    w:PickMenu("Follow item types")
+    T.eq(listed(ui), "", "the last one left the list")
+    T.truthy(ui.emptyItems:IsShown() and ui.emptyItems:GetText():find("Click All"), "says how to see the rest")
+    w:Click(ui.showButtons.all)
+    T.truthy(itemRow(ui, F.HEARTHSTONE), "everything again")
   end)
 
   T.it("filters by name", function()

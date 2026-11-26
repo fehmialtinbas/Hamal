@@ -32,6 +32,9 @@ another.
 - **See what's going:** stacks about to be mailed look greyed out in the game's bags. Hover any
   item in your bags, at the mailbox or not, and its tooltip names the bank alt that gets it. The
   tooltip line works with bag addons such as Bagnon too.
+- **Keep something this time:** at the mailbox, **Alt-click** an item in your bags
+  (**Option-click** on a Mac) and it stays there for this visit. Alt-click it again to send it
+  after all.
 - **Optional:** send everything as soon as you open a mailbox.
 
 ## Settings
@@ -48,11 +51,13 @@ Drag single items onto **Always send these items**, and give a bank alt a one-wo
 **To:**.
 
 **Items.** Every item in your bags or seen on your characters before, with where it goes right
-now. Click one to choose: follow item types, always send to a bank alt, or never send.
+now, grouped by type (Cloth, Herb, Metal & Stone...). Click one to choose: follow item types,
+always send to a bank alt, or never send. **Show** only what's going, what's staying, or your
+never-send list, and tick **Only items in my bags** to see just what you carry now.
 
 **Options.** Fill the mail when you type a name, send every mail with one click, send when the
-mailbox opens, combine stacks, the never-send list, the tooltip line, the minimap button, and the
-look.
+mailbox opens, combine stacks, the never-send list, the tooltip line, Alt-click at the mailbox, the
+minimap button, and the look.
 
 ## Your items never go to anyone else
 

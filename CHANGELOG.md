@@ -1,5 +1,18 @@
 # Hamal
 
+## v0.1.6
+
+- At the mailbox, **Alt-click** (**Option-click** on a Mac) an item in your bags to keep it there
+  this time: every stack of it loses its grey mark and stays out of the mails, also out of a mail
+  Hamal is filling. Alt-click it again to send it after all. It is forgotten when the mailbox
+  closes, and a box under Options switches Alt-click off. A plain click stays the game's own: it
+  still picks the item up or puts it into the mail.
+- The Items tab groups items by type (Cloth, Herb, Metal & Stone, Potion, Weapon...), trade
+  goods first. **Show** buttons narrow it to what's **Going**, what's **Staying** (could go,
+  but no rule sends it yet) or what's on the **Never** list.
+- **Only items in my bags** at the bottom of the Items tab hides the items you no longer carry,
+  so the list stays short. Hamal remembers this and the Show choice.
+
 ## v0.1.5
 
 - The tooltip line works away from the mailbox too: hover an item in your bags to see which bank

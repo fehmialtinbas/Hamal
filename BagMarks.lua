@@ -4,11 +4,13 @@ local _, ns = ...
 --   * the tooltip of an item in your bags says which bank alt gets it ("Hamal: goes to
 --     Vault Keeper"), at the mailbox or not (Options can switch this off);
 --   * while a mailbox is open, stacks about to be mailed look greyed out in the game's
---     own bags.
+--     own bags;
+--   * at the mailbox, Alt-click on one of them keeps that item in the bags for the rest
+--     of the visit, and another Alt-click sends it again (Options can switch this off).
 --
 -- Bag addons (Bagnon, Baganator, AdiBags, ElvUI...) draw bags of their own. Hamal reads
--- none of their frames, so they get no grey marks; the tooltip line works with them,
--- because it hooks the game's tooltip, not a bag.
+-- none of their frames, so they get no grey marks; the tooltip line and Alt-click work
+-- with them, because they hook the game's tooltip and click handling, not a bag.
 --
 -- Away from a mailbox the only work is on hovering an item in your bags: that one slot
 -- is read and checked against your rules. At the mailbox the bag buttons are walked once
@@ -20,6 +22,9 @@ ns.BagMarks = BagMarks
 local SHADE = { 0.08, 0.08, 0.08, 0.72 }
 
 local slots = nil -- while a mailbox is open: [SlotKey] = bank alt key
+-- The bag slot under the mouse at the mailbox, from its tooltip: { owner, bag, slot }.
+-- That is how an Alt-click is matched to a stack, in the game's bags or a bag addon's.
+local hovered = nil
 local marks = setmetatable({}, { __mode = "k" }) -- [bag button] = our texture
 local hookedFrames = {}
 BagMarks.marks = marks
@@ -121,6 +126,7 @@ end
 
 function BagMarks.Clear()
   slots = nil
+  hovered = nil
   for _, mark in pairs(marks) do
     mark:Hide()
   end
@@ -139,17 +145,72 @@ function BagMarks.Destination(bag, slot)
   return key
 end
 
+local GOLD = { 0.9, 0.72, 0.36 }
+local HINT = { 0.6, 0.8, 1 }
+
+local function altClickOn()
+  return ns.db and ns.db.options.altClickKeep
+end
+
 local function onBagItemTooltip(tooltip, bag, slot)
-  if ns.Widgets.ownTooltip or not (ns.db and ns.db.options.bagTooltips) then return end
+  if ns.Widgets.ownTooltip then return end
+  hovered = nil
+  if slots and bag and slot and ns.Scanner.IsMailBag(bag) then
+    hovered = { owner = tooltip:GetOwner(), bag = bag, slot = slot }
+  end
+  if not (ns.db and ns.db.options.bagTooltips) then return end
+  local hint
+  if slots and hovered then
+    local item = ns.Scanner.ReadSlot(bag, slot)
+    if item and ns.Rules.held[item.itemID] then
+      tooltip:AddLine("Hamal: stays in your bags this time", GOLD[1], GOLD[2], GOLD[3])
+      if altClickOn() then tooltip:AddLine(ns.AltClick() .. ": send it", HINT[1], HINT[2], HINT[3]) end
+      tooltip:Show()
+      return
+    end
+    hint = altClickOn() and (ns.AltClick() .. ": keep it this time") or nil
+  end
   local key = BagMarks.Destination(bag, slot)
   local mule = key and ns.db.mules[key]
   if not mule then return end
-  tooltip:AddLine(("Hamal: goes to %s"):format(mule.name), 0.9, 0.72, 0.36)
+  tooltip:AddLine(("Hamal: goes to %s"):format(mule.name), GOLD[1], GOLD[2], GOLD[3])
+  if hint then tooltip:AddLine(hint, HINT[1], HINT[2], HINT[3]) end
   tooltip:Show() -- fit the new line
+end
+
+local function linkedItemID(link)
+  return type(link) == "string" and tonumber(link:match("item:(%d+)")) or nil
+end
+
+-- Alt-click (left button, no other modifier) on a stack in your bags at the mailbox
+-- keeps that item in the bags this visit, or lets it go again. On a Mac that is the
+-- Option key, which the game reports as Alt (IsAltKeyDown), so the texts say Option. Plain clicks stay the
+-- game's: a left-click picks the item up and a right-click puts it into the mail, and
+-- Hamal never takes those over. The game passes every modified click on an item
+-- through HandleModifiedItemClick; Hamal only listens after the game has handled it.
+local function onModifiedItemClick(link)
+  if not slots or not hovered or not altClickOn() then return end
+  if not (IsAltKeyDown and IsAltKeyDown()) then return end
+  if (IsShiftKeyDown and IsShiftKeyDown()) or (IsControlKeyDown and IsControlKeyDown()) then return end
+  if GetMouseButtonClicked and GetMouseButtonClicked() ~= "LeftButton" then return end
+  -- The click must be on the bag slot whose tooltip is up, not on a chat link.
+  if not GameTooltip:IsShown() or GameTooltip:GetOwner() ~= hovered.owner then return end
+  local item = ns.Scanner.ReadSlot(hovered.bag, hovered.slot)
+  if not item then return end
+  local linked = linkedItemID(link)
+  if linked and linked ~= item.itemID then return end
+  if ns.Mailer.ToggleHold(item) and GameTooltip:GetOwner() == hovered.owner then
+    -- Say the new state at once in the tooltip that is up.
+    local bag, slot = hovered.bag, hovered.slot
+    GameTooltip:SetBagItem(bag, slot)
+  end
 end
 
 ns.OnInit(function()
   if GameTooltip and GameTooltip.SetBagItem then
     hooksecurefunc(GameTooltip, "SetBagItem", ns.Safely(onBagItemTooltip))
+  end
+  if HandleModifiedItemClick then
+    hooksecurefunc("HandleModifiedItemClick", ns.Safely(onModifiedItemClick))
   end
 end)

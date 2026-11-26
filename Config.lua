@@ -18,7 +18,7 @@ local ICON_GAP = 4
 local ICONS_PER_ROW = 10
 local MAX_ICONS = 2 * ICONS_PER_ROW
 local CHAR_ROWS = 11
-local ITEM_ROWS = 15
+local ITEM_ROWS = 14
 local ITEM_ROW_HEIGHT = 26
 
 local TABS = {
@@ -445,6 +445,7 @@ local function destinationText(db, entry)
   if reason == "never" then return "|cffff6666never sent|r" end
   if reason == "bound" then return "|cff999999soulbound, stays|r" end
   if reason == "quest" then return "|cff999999quest item, stays|r" end
+  if reason == "held" then return "|cff999999stays this time|r" end
   if entry.destination then
     local name = db.mules[entry.destination].name
     if reason == "item" then return ("|cff66ff66%s|r (picked)"):format(name) end
@@ -533,6 +534,15 @@ local function onItemClick(row, mouseButton)
   end)
 end
 
+-- The "Show" buttons above the list (see Items.Shows).
+local SHOW_BUTTONS = {
+  { key = "all", label = "All", width = 44, tip = "Every item Hamal knows" },
+  { key = "going", label = "Going", width = 58, tip = "Items a rule sends to a bank alt" },
+  { key = "staying", label = "Staying", width = 66,
+    tip = "Items no rule sends yet. Soulbound items, your Hearthstone and tools can't go, so they aren't listed." },
+  { key = "never", label = "Never", width = 56, tip = "Your never-send list" },
+}
+
 local function buildItemsTab(pane)
   text(pane, "Search", "GameFontHighlightSmall", LEFT, -8)
   ui.searchBox = inputBox(pane, 170, LEFT + 44, -4)
@@ -540,9 +550,20 @@ local function buildItemsTab(pane)
     itemOffset = 0
     Config.Refresh()
   end))
-  local hint = text(pane, "Click an item to choose where it goes (right-click: next choice). "
-    .. "Drop an item from your bags here to always send it.", "GameFontDisableSmall", LEFT + 240, -4)
-  hint:SetWidth(WIDTH - LEFT - 240 - 14)
+  text(pane, "Show", "GameFontHighlightSmall", LEFT + 236, -8)
+  ui.showButtons = {}
+  local x = LEFT + 270
+  for _, def in ipairs(SHOW_BUTTONS) do
+    local b = button(pane, def.label, def.width, x, -4, function()
+      ns.db.options.itemsShow = def.key
+      itemOffset = 0
+      Config.Refresh()
+    end)
+    b:SetScript("OnEnter", ns.Safely(function(self) ns.Widgets.ShowTextTooltip(self, def.tip) end))
+    b:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
+    ui.showButtons[def.key] = b
+    x = x + def.width + 4
+  end
   text(pane, "Item", "GameFontNormalSmall", LEFT + 30, -32)
   text(pane, "In bags", "GameFontNormalSmall", LEFT + 330, -32)
   text(pane, "Goes to", "GameFontNormalSmall", LEFT + 400, -32)
@@ -568,10 +589,18 @@ local function buildItemsTab(pane)
     row.dest:SetPoint("LEFT", 400, 0)
     row.dest:SetPoint("RIGHT", -4, 0)
     row.dest:SetJustifyH("LEFT")
+    -- A group's header row: its name over a thin line.
+    row.rule = row:CreateTexture(nil, "ARTWORK")
+    row.rule:SetColorTexture(1, 0.82, 0, 0.3)
+    row.rule:SetHeight(1)
+    row.rule:SetPoint("BOTTOMLEFT", 2, 2)
+    row.rule:SetPoint("BOTTOMRIGHT", -4, 2)
+    row.rule:Hide()
     row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     row:SetScript("OnClick", ns.Safely(onItemClick))
     row:SetScript("OnReceiveDrag", ns.Safely(dropOnItemList))
     row:SetScript("OnEnter", ns.Safely(function(self)
+      if not self.entry then return end
       ns.Widgets.ShowItemTooltip(self, self.entry.itemID, "Click: choose where it goes\nRight-click: next choice")
     end))
     row:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
@@ -587,9 +616,15 @@ local function buildItemsTab(pane)
   end))
 
   local bottom = -48 - ITEM_ROWS * ITEM_ROW_HEIGHT - 6
-  ui.emptyItems = text(pane, "No items yet. Hamal lists what is in your bags and what your characters carried before.",
-    "GameFontDisableSmall", LEFT, -52)
-  ui.itemsPage = text(pane, "", "GameFontDisableSmall", LEFT, bottom - 4)
+  ui.emptyItems = text(pane, "", "GameFontDisableSmall", LEFT, -52)
+  -- The whole list (bags, items carried before, items with a rule) can get long; this
+  -- keeps it to what is in the bags now. Remembered between sessions.
+  ui.bagsOnlyCheck = checkBox(pane, LEFT, bottom, 220, function(self)
+    ns.db.options.itemsBagsOnly = self:GetChecked() and true or false
+    itemOffset = 0
+    Config.Refresh()
+  end)
+  ui.bagsOnlyCheck.label:SetText("Only items in my bags")
   ui.prevButton = button(pane, "Prev", 70, WIDTH - 14 - 146, bottom, function()
     itemOffset = math.max(0, itemOffset - ITEM_ROWS)
     Config.Refresh()
@@ -598,40 +633,102 @@ local function buildItemsTab(pane)
     itemOffset = itemOffset + ITEM_ROWS
     Config.Refresh()
   end)
+  ui.itemsPage = text(pane, "", "GameFontDisableSmall", LEFT, bottom - 4)
+  ui.itemsPage:ClearAllPoints()
+  ui.itemsPage:SetPoint("RIGHT", ui.prevButton, "LEFT", -10, 0)
+  local hint = text(pane, "Click an item to choose where it goes (right-click: next choice). "
+    .. "Drop an item from your bags on the list to always send it.", "GameFontDisableSmall", LEFT, bottom - 30)
+  hint:SetWidth(WIDTH - 2 * LEFT)
+end
+
+local EMPTY_ALL = "No items yet. Hamal lists what is in your bags and what your characters carried before."
+local EMPTY_BAGS = "Nothing in your bags. Untick \"Only items in my bags\" to see every item Hamal knows."
+local EMPTY_SEARCH = "No item matches the search."
+local EMPTY_SHOW = "No items here. Click All to see every item Hamal knows."
+
+local function showHeaderRow(row, header)
+  row.entry = nil
+  row.headerLabel = header.label
+  row:EnableMouse(false) -- no highlight or clicks; a drop lands on the list behind it
+  row.icon:Hide()
+  row.name:ClearAllPoints()
+  row.name:SetPoint("LEFT", 2, 0)
+  row.name:SetText(("|cffffd100%s|r  |cff999999%d|r"):format(header.label, header.count))
+  row.count:SetText("")
+  row.dest:SetText("")
+  row.rule:Show()
+end
+
+local function showItemRow(db, row, entry)
+  row.entry = entry
+  row.headerLabel = nil
+  row:EnableMouse(true)
+  row.icon:SetTexture(entry.icon)
+  row.icon:Show()
+  row.name:ClearAllPoints()
+  row.name:SetPoint("LEFT", 30, 0)
+  row.name:SetText(itemName(entry))
+  row.count:SetText(entry.inBags and tostring(entry.count) or "-")
+  row.dest:SetText(destinationText(db, entry))
+  row.rule:Hide()
 end
 
 local function refreshItems(db)
   itemsCache = itemsCache or ns.Items.Collect(db)
   local query = ns.Trim(ui.searchBox:GetText() or ""):lower()
-  local list = {}
+  local bagsOnly = db.options.itemsBagsOnly
+  local show = ns.Items.IsShow(db.options.itemsShow) and db.options.itemsShow or "all"
+  ui.bagsOnlyCheck:SetChecked(bagsOnly)
+  for key, b in pairs(ui.showButtons) do
+    if key == show then b:LockHighlight() else b:UnlockHighlight() end -- the chosen one glows
+  end
+  local matching = {}
   for _, entry in ipairs(itemsCache) do
-    if query == "" or (entry.name and entry.name:lower():find(query, 1, true)) then
-      list[#list + 1] = entry
+    if (entry.inBags or not bagsOnly) and ns.Items.Shows(entry, show)
+      and (query == "" or (entry.name and entry.name:lower():find(query, 1, true))) then
+      matching[#matching + 1] = entry
     end
   end
+  local list = ns.Items.WithHeaders(matching)
   itemOffset = math.max(0, math.min(itemOffset, #list - ITEM_ROWS))
   local visible = {}
   for i, row in ipairs(ui.itemRows) do
     local entry = list[i + itemOffset]
-    visible[#visible + 1] = entry
-    if entry then
-      row.entry = entry
-      row.icon:SetTexture(entry.icon)
-      row.name:SetText(itemName(entry))
-      row.count:SetText(entry.inBags and tostring(entry.count) or "-")
-      row.dest:SetText(destinationText(db, entry))
+    if entry and entry.header then
+      showHeaderRow(row, entry)
+      row:Show()
+    elseif entry then
+      visible[#visible + 1] = entry
+      showItemRow(db, row, entry)
       row:Show()
     else
+      row.entry = nil
       row:Hide()
     end
   end
-  if #list > 0 then
-    ui.itemsPage:SetText(("%d-%d of %d"):format(itemOffset + 1, math.min(itemOffset + ITEM_ROWS, #list), #list))
+  -- Which items are on screen, counting items only, not group headers.
+  if #visible > 0 then
+    local before = 0
+    for i = 1, itemOffset do
+      if not list[i].header then before = before + 1 end
+    end
+    ui.itemsPage:SetText(("%d-%d of %d"):format(before + 1, before + #visible, #matching))
   else
     ui.itemsPage:SetText("")
   end
   ui.prevButton:SetEnabled(itemOffset > 0)
   ui.nextButton:SetEnabled(itemOffset + ITEM_ROWS < #list)
+  local empty = EMPTY_ALL
+  if #itemsCache > 0 then
+    if query ~= "" then
+      empty = EMPTY_SEARCH
+    elseif show ~= "all" then
+      empty = EMPTY_SHOW
+    elseif bagsOnly then
+      empty = EMPTY_BAGS
+    end
+  end
+  ui.emptyItems:SetText(empty)
   ui.emptyItems:SetShown(#list == 0)
   -- Ask the server only for the names of the rows on screen.
   ns.Items.RequestNames(visible)
@@ -682,8 +779,11 @@ local function buildOptionsTab(pane)
   ui.darkCheck.label:SetText("Dark, plain look (sits well with UI suites such as DaylightUI or ElvUI)")
   ui.tooltipCheck = checkBox(pane, LEFT, -192, labelWidth, option("bagTooltips"))
   ui.tooltipCheck.label:SetText("Say which bank alt gets an item in its tooltip, for items in my bags")
+  ui.altClickCheck = checkBox(pane, LEFT, -220, labelWidth, option("altClickKeep"))
+  ui.altClickCheck.label:SetText(("At the mailbox, %s an item in my bags to keep it there this time")
+    :format(ns.AltClick()))
 
-  local excludeY = -250
+  local excludeY = -278
   text(pane, "Never send (any bank alt)", "GameFontNormal", LEFT, excludeY + 18)
   ui.excludeDrop = dropZone(pane, LEFT, excludeY, "Drag an item here to keep it in your bags.", addExclude)
   ui.excludeMore = text(pane, "", "GameFontDisableSmall", LEFT, excludeY - 2 * (ICON + ICON_GAP))
@@ -728,6 +828,7 @@ local function refreshOptions(db)
   ui.minimapCheck:SetChecked(not (db.minimap and db.minimap.hide))
   ui.darkCheck:SetChecked(db.options.look == "dark")
   ui.tooltipCheck:SetChecked(db.options.bagTooltips)
+  ui.altClickCheck:SetChecked(db.options.altClickKeep)
   layoutIcons(panes.options, ui.excludeButtons, ns.SortedIDs(db.exclude), LEFT + ICON + 8, ui.excludeY,
     removeExclude, ui.excludeMore)
 end

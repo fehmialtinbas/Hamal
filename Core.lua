@@ -91,6 +91,11 @@ function ns.FormatMoney(copper)
   return table.concat(parts, " ")
 end
 
+-- "Alt-click", or "Option-click" on a Mac: the game reads the Option key as Alt there.
+function ns.AltClick()
+  return ((IsMacClient and IsMacClient()) and "Option" or "Alt") .. "-click"
+end
+
 function ns.ItemLabel(itemID)
   local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
   if getInfo then
@@ -139,6 +144,9 @@ local DEFAULTS = {
     stackFirst = true,      -- combine partial stacks of outgoing items before mailing
     look = "game",          -- "game" or "dark" (see Theme.lua)
     bagTooltips = true,     -- "Hamal: goes to ..." in the tooltip of items in your bags
+    altClickKeep = true,    -- at the mailbox, Alt-click a bag item to keep it in the bags this visit
+    itemsBagsOnly = false,  -- the Items tab lists only what is in the bags now
+    itemsShow = "all",      -- the Items tab's Show button: "all", "going", "staying" or "never"
   },
 }
 

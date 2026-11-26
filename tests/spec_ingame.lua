@@ -14,7 +14,7 @@ end
 
 local function itemRow(ui, itemID)
   for _, row in ipairs(ui.itemRows) do
-    if row:IsShown() and row.entry.itemID == itemID then return row end
+    if row:IsShown() and row.entry and row.entry.itemID == itemID then return row end
   end
 end
 
