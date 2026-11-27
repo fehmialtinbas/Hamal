@@ -116,6 +116,7 @@ function handlers.help()
   ns.Print("  /hamal cat Name cloth herb - toggle item types for it (/hamal cats lists types)")
   ns.Print("  /hamal item Name [item] - always send this item to it (shift-click the item)")
   ns.Print("  /hamal exclude [item] - never send this item")
+  ns.Print("  /hamal keep [item] 20 - keep at least 20 of it in your bags (/hamal keep lists them)")
   ns.Print("  /hamal alias vk Name - typing vk in To: means this bank alt")
   ns.Print("  /hamal list - bank alts and their rules")
   ns.Print("  /hamal preview Name - what would be sent right now")
@@ -204,6 +205,40 @@ function handlers.exclude(args)
   refresh()
 end
 
+local KEEP_USAGE = "Usage: /hamal keep [shift-click an item] 20  (0 or off: send every stack)"
+
+-- /hamal keep [item] 20: at least 20 of it stay in the bags (whole stacks). Without an
+-- item: what you keep now.
+function handlers.keep(args)
+  local db = ns.db
+  if ns.Trim(args) == "" then
+    local parts = {}
+    for _, itemID in ipairs(ns.SortedIDs(db.keep)) do
+      local amount = ns.Rules.KeepAmount(db, itemID)
+      if amount then parts[#parts + 1] = ("%s %d"):format(ns.ItemLabel(itemID), amount) end
+    end
+    if #parts == 0 then return ns.Print("You keep nothing back yet. " .. KEEP_USAGE) end
+    return ns.Print("You keep at least: %s", table.concat(parts, ", "))
+  end
+  local itemID, word
+  if args:find("|Hitem:", 1, true) then
+    itemID, word = Commands.ExtractItem(args)
+  else
+    local id, rest = args:match("^%s*(%d+)%s+(%S+)%s*$")
+    itemID, word = tonumber(id), rest
+  end
+  word = (word or ""):lower()
+  local amount = (word == "off" and 0) or tonumber(word:match("^%d+$") or "")
+  if not itemID or not amount or amount > 99999 then return ns.Print(KEEP_USAGE) end
+  ns.Items.SetKeep(db, itemID, amount)
+  if amount > 0 then
+    ns.Print("%s: at least %d stay in your bags.", ns.ItemLabel(itemID), amount)
+  else
+    ns.Print("%s: every stack goes again.", ns.ItemLabel(itemID))
+  end
+  refresh()
+end
+
 function handlers.alias(args)
   local alias, name = args:match("^(%S+)%s+(.+)$")
   if not alias then
@@ -239,6 +274,9 @@ function handlers.list()
     ns.Print("%s%s%s", mule.name, aliasText, mule.disabled and " [off]" or "")
     ns.Print("  types: %s", #categories > 0 and table.concat(categories, ", ") or "none")
     if #items > 0 then ns.Print("  items: %s", table.concat(items, " ")) end
+  end
+  for itemID in pairs(db.keep) do
+    if ns.Rules.KeepAmount(db, itemID) then return handlers.keep("") end
   end
 end
 

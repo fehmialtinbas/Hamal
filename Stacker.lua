@@ -22,6 +22,14 @@ function Stacker.MaxStack(itemID)
   return nil
 end
 
+-- An item with a keep amount (Rules.KeepAmount) is combined only when that amount is
+-- whole stacks. Otherwise combining could keep far more than asked: for "keep 5", five
+-- stacks of 3 keep 6, but one combined stack of 15 would keep all 15.
+function Stacker.Combinable(db, itemID, max)
+  local amount = ns.Rules.KeepAmount(db, itemID)
+  return not amount or amount % max == 0
+end
+
 -- Stacks going to `targetKey`, grouped by item ID. A locked stack (one just moved,
 -- or picked up by the player) is reported instead of listed.
 local function stacksByItem(db, targetKey)
@@ -62,7 +70,7 @@ function Stacker.NextMove(db, targetKey, skip)
   table.sort(ids)
   for _, itemID in ipairs(ids) do
     local max = Stacker.MaxStack(itemID)
-    if max and max > 1 and not (skip and skip[itemID]) then
+    if max and max > 1 and not (skip and skip[itemID]) and Stacker.Combinable(db, itemID, max) then
       local partial = {}
       for _, item in ipairs(groups[itemID]) do
         if item.count < max then partial[#partial + 1] = item end

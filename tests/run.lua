@@ -18,5 +18,6 @@ require("spec_otherwindows")
 require("spec_access")
 require("spec_look")
 require("spec_bagmarks")
+require("spec_keep")
 
 os.exit(T.report() and 0 or 1)

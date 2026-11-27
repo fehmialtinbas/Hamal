@@ -35,6 +35,8 @@ another.
 - **Keep something this time:** at the mailbox, **Alt-click** an item in your bags
   (**Option-click** on a Mac) and it stays there for this visit. Alt-click it again to send it
   after all.
+- **Keep some, send the rest:** keep 1, 2, 3 or 5 stacks of an item in your bags (any amount
+  with `/hamal keep`), and only the rest goes. Handy for ore you still want to smelt.
 - **Optional:** send everything as soon as you open a mailbox.
 
 ## Settings
@@ -52,7 +54,7 @@ Drag single items onto **Always send these items**, and give a bank alt a one-wo
 
 **Items.** Every item in your bags or seen on your characters before, with where it goes right
 now, grouped by type (Cloth, Herb, Metal & Stone...). Click one to choose: follow item types,
-always send to a bank alt, or never send. **Show** only what's going, what's staying, or your
+always send to a bank alt, or never send, and how much of it to keep in your bags. **Show** only what's going, what's staying, or your
 never-send list, and tick **Only items in my bags** to see just what you carry now.
 
 **Options.** Fill the mail when you type a name, send every mail with one click, send when the
@@ -96,6 +98,7 @@ if something ever breaks, you get one short line, and `/hamal status` shows the 
 | `/hamal list` | your bank alts and their rules |
 | `/hamal preview Name` | what would be sent now |
 | `/hamal exclude [item]` | never send an item |
+| `/hamal keep [item] 20` | keep at least 20 of an item in your bags |
 | `/hamal status` | details for a bug report |
 
 `/ham` works as a short form. The full list is on GitHub.

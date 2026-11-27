@@ -2,7 +2,8 @@ local _, ns = ...
 
 -- Where your items go, shown where you look at them:
 --   * the tooltip of an item in your bags says which bank alt gets it ("Hamal: goes to
---     Vault Keeper"), at the mailbox or not (Options can switch this off);
+--     Vault Keeper"), at the mailbox or not, and how many you keep of it (Options can
+--     switch this off);
 --   * while a mailbox is open, stacks about to be mailed look greyed out in the game's
 --     own bags;
 --   * at the mailbox, Alt-click on one of them keeps that item in the bags for the rest
@@ -132,7 +133,8 @@ function BagMarks.Clear()
   end
 end
 
--- The bank alt the stack in this bag slot goes to, or nil.
+-- The bank alt the stack in this bag slot goes to, or nil. Away from the mailbox also
+-- the stack, as read for that.
 function BagMarks.Destination(bag, slot)
   local db = ns.db
   if not db or not bag or not slot then return nil end
@@ -142,7 +144,7 @@ function BagMarks.Destination(bag, slot)
   local item = ns.Scanner.ReadSlot(bag, slot)
   local key = item and ns.Rules.Resolve(item, db)
   if not key or key == ns.NormalizeName(ns.PlayerName()) then return nil end
-  return key
+  return key, item
 end
 
 local GOLD = { 0.9, 0.72, 0.36 }
@@ -152,17 +154,27 @@ local function altClickOn()
   return ns.db and ns.db.options.altClickKeep
 end
 
+-- At the mailbox, a stack not in this visit's mail that a rule would send: one a keep
+-- amount holds back.
+local function keptBack(item)
+  local key = ns.Rules.Resolve(item, ns.db)
+  return key ~= nil and key ~= ns.NormalizeName(ns.PlayerName())
+end
+
 local function onBagItemTooltip(tooltip, bag, slot)
   if ns.Widgets.ownTooltip then return end
   hovered = nil
   if slots and bag and slot and ns.Scanner.IsMailBag(bag) then
     hovered = { owner = tooltip:GetOwner(), bag = bag, slot = slot }
   end
-  if not (ns.db and ns.db.options.bagTooltips) then return end
+  local db = ns.db
+  if not (db and db.options.bagTooltips) then return end
+  local key, item = BagMarks.Destination(bag, slot)
   local hint
-  if slots and hovered then
-    local item = ns.Scanner.ReadSlot(bag, slot)
-    if item and ns.Rules.held[item.itemID] then
+  if hovered then
+    item = ns.Scanner.ReadSlot(bag, slot)
+    if not item then return end
+    if ns.Rules.held[item.itemID] then
       tooltip:AddLine("Hamal: stays in your bags this time", GOLD[1], GOLD[2], GOLD[3])
       if altClickOn() then tooltip:AddLine(ns.AltClick() .. ": send it", HINT[1], HINT[2], HINT[3]) end
       tooltip:Show()
@@ -170,10 +182,17 @@ local function onBagItemTooltip(tooltip, bag, slot)
     end
     hint = altClickOn() and (ns.AltClick() .. ": keep it this time") or nil
   end
-  local key = BagMarks.Destination(bag, slot)
-  local mule = key and ns.db.mules[key]
-  if not mule then return end
-  tooltip:AddLine(("Hamal: goes to %s"):format(mule.name), GOLD[1], GOLD[2], GOLD[3])
+  local mule = key and db.mules[key]
+  local keep = item and ns.Rules.KeepAmount(db, item.itemID)
+  local keepText = keep and (" (you keep %d)"):format(keep) or ""
+  if mule then
+    tooltip:AddLine(("Hamal: goes to %s%s"):format(mule.name, keepText), GOLD[1], GOLD[2], GOLD[3])
+  elseif hovered and keep and keptBack(item) then
+    tooltip:AddLine("Hamal: stays in your bags" .. keepText, GOLD[1], GOLD[2], GOLD[3])
+    if hint then hint = ns.AltClick() .. ": keep all of it this time" end
+  else
+    return
+  end
   if hint then tooltip:AddLine(hint, HINT[1], HINT[2], HINT[3]) end
   tooltip:Show() -- fit the new line
 end

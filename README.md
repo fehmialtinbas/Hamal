@@ -42,6 +42,8 @@ cross realms. Each character records its realm and ruleset when you log in on it
 
 Every item in your bags, every item your characters carried before, and every item with a rule,
 with where it goes right now. Click one to choose: *Follow item types*, *Always send to (bank alt)*, or *Never send*.
+For an item that goes, the same menu sets how much of it stays in your bags: *Keep 1 stack (20)*,
+2, 3 or 5 stacks (see **Keep some, send the rest** below).
 Items are grouped by type (Cloth, Herb, Metal & Stone, Potion, Weapon, ...), trade goods first,
 so ore and bars sit together. The **Show** buttons at the top narrow the list: **Going** (a rule
 sends it to a bank alt), **Staying** (it could go, but no rule sends it yet: handy for finding
@@ -91,6 +93,15 @@ filling). Alt-click it again to send it after all. Closing the mailbox forgets i
 bag addons too. A plain click stays the game's own (a left-click picks the item up, a right-click
 puts it into the mail), so Hamal uses Alt. Another addon that also does something on Alt-click at
 the mailbox would do it at the same time; switch Hamal's Alt-click off under Options then.
+
+**Keep some, send the rest.** Mining Tin Ore but still smelting some? Click the item on the Items
+tab and choose *Keep 1 stack (20)* (or 2, 3, 5 stacks), or type `/hamal keep [item] 30` for any
+amount (`/hamal keep [item] off` to send every stack again, `/hamal keep` to list). At the mailbox
+at least that much stays in your bags and the rest goes. Hamal never splits a stack: whole stacks
+stay, as few items as possible, so "keep 5" with stacks of 20 keeps one stack of 20. The kept
+stacks aren't greyed out, and their tooltip says `Hamal: stays in your bags (you keep 20)`. An
+item you keep some of is combined before mailing only when the amount is whole stacks, because one
+combined stack could keep more than you asked.
 
 **How many items per mail.** A mail takes 12 stacks (Hamal reads the limit from the game). Hamal
 queues every outgoing stack, fills a mail, sends it, and fills the next one when the server confirms,
@@ -220,6 +231,7 @@ If two bank alts want the same item:
 | `/hamal cat Name type...` | toggle item types |
 | `/hamal item Name [item]` | toggle one item |
 | `/hamal exclude [item]` | never send an item |
+| `/hamal keep [item] 20` | keep at least 20 of an item in your bags (`off`: send every stack) |
 | `/hamal alias word Name` | one-word shortcut for To: |
 | `/hamal list` | bank alts and their rules |
 | `/hamal preview Name` | what would be sent now |

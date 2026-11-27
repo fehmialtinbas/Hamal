@@ -79,17 +79,40 @@ local function byKind(a, b)
   return a.slot < b.slot
 end
 
--- Every bag item that belongs to `targetKey`, sorted so similar items share a mail.
-function Scanner.Collect(db, targetKey)
-  local keys = ns.Mules.ActiveKeys(db)
-  local out = {}
+-- Every bag stack a rule sends to a bank alt, as a list of { item, key, reason }, and
+-- the set of those stacks that stay because of a keep amount (see Rules.PickKept).
+local function resolveBags(db, keys)
+  local going, keepGroups = {}, nil
   Scanner.EachItem(function(item)
     local key, reason = ns.Rules.Resolve(item, db, keys)
-    if key == targetKey then
-      item.reason = reason
-      out[#out + 1] = item
+    if not key then return end
+    going[#going + 1] = { item = item, key = key, reason = reason }
+    if ns.Rules.KeepAmount(db, item.itemID) then
+      keepGroups = keepGroups or {}
+      local group = keepGroups[item.itemID] or {}
+      keepGroups[item.itemID] = group
+      group[#group + 1] = item
     end
   end)
+  local kept = {}
+  for itemID, stacks in pairs(keepGroups or {}) do
+    for _, stack in ipairs(ns.Rules.PickKept(stacks, ns.Rules.KeepAmount(db, itemID))) do
+      kept[stack] = true
+    end
+  end
+  return going, kept
+end
+
+-- Every bag item that goes to `targetKey`, sorted so similar items share a mail.
+function Scanner.Collect(db, targetKey)
+  local going, kept = resolveBags(db, ns.Mules.ActiveKeys(db))
+  local out = {}
+  for _, g in ipairs(going) do
+    if g.key == targetKey and not kept[g.item] then
+      g.item.reason = g.reason
+      out[#out + 1] = g.item
+    end
+  end
   table.sort(out, byKind)
   return out
 end
@@ -99,11 +122,25 @@ function Scanner.SlotKey(bag, slot)
   return bag * 1000 + slot
 end
 
+-- How many stacks of one item go once partial stacks are combined (see Stacker.lua) and
+-- a keep amount has held some back. totals.count: every item of it a rule sends, kept
+-- ones too; totals.stacks: the stacks that go without combining.
+local function combinedStacks(db, itemID, totals)
+  local max = ns.Stacker.MaxStack(itemID)
+  if not max or max <= 0 or not ns.Stacker.Combinable(db, itemID, max) then return totals.stacks end
+  local amount = ns.Rules.KeepAmount(db, itemID)
+  if not amount then return math.min(totals.stacks, math.ceil(totals.count / max)) end
+  local combined = {}
+  for _ = 1, math.floor(totals.count / max) do combined[#combined + 1] = { count = max } end
+  if totals.count % max > 0 then combined[#combined + 1] = { count = totals.count % max } end
+  return #combined - #ns.Rules.PickKept(combined, amount)
+end
+
 -- For every active bank alt, in one pass over the bags:
 --   stacks     stacks waiting for it now
 --   minStacks  stacks once partial stacks are combined (see Stacker.lua)
 -- Also returns where each outgoing stack goes ([SlotKey] = bank alt key), for the bag
--- marks and tooltips at the mailbox.
+-- marks and tooltips at the mailbox. Stacks a keep amount holds back go nowhere.
 function Scanner.Summary(db)
   local keys = ns.Mules.ActiveKeys(db)
   local summary, perItem, slots = {}, {}, {}
@@ -111,29 +148,25 @@ function Scanner.Summary(db)
     summary[key] = { stacks = 0, minStacks = 0 }
     perItem[key] = {}
   end
-  Scanner.EachItem(function(item)
-    local key = ns.Rules.Resolve(item, db, keys)
-    if key then
+  local going, kept = resolveBags(db, keys)
+  for _, g in ipairs(going) do
+    local item, key = g.item, g.key
+    local totals = perItem[key][item.itemID]
+    if not totals then
+      totals = { count = 0, stacks = 0 }
+      perItem[key][item.itemID] = totals
+    end
+    totals.count = totals.count + item.count
+    if not kept[item] then
       slots[Scanner.SlotKey(item.bag, item.slot)] = key
       summary[key].stacks = summary[key].stacks + 1
-      local totals = perItem[key][item.itemID]
-      if not totals then
-        totals = { count = 0, stacks = 0 }
-        perItem[key][item.itemID] = totals
-      end
-      totals.count = totals.count + item.count
       totals.stacks = totals.stacks + 1
     end
-  end)
+  end
   for key, totalsByItem in pairs(perItem) do
     local min = 0
     for itemID, totals in pairs(totalsByItem) do
-      local max = ns.Stacker.MaxStack(itemID)
-      if max and max > 0 then
-        min = min + math.min(totals.stacks, math.ceil(totals.count / max))
-      else
-        min = min + totals.stacks
-      end
+      min = min + combinedStacks(db, itemID, totals)
     end
     summary[key].minStacks = min
   end
@@ -147,9 +180,9 @@ function Scanner.CountAll(db)
   for _, key in ipairs(keys) do
     counts[key] = 0
   end
-  Scanner.EachItem(function(item)
-    local key = ns.Rules.Resolve(item, db, keys)
-    if key then counts[key] = counts[key] + 1 end
-  end)
+  local going, kept = resolveBags(db, keys)
+  for _, g in ipairs(going) do
+    if not kept[g.item] then counts[g.key] = counts[g.key] + 1 end
+  end
   return counts
 end

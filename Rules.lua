@@ -29,6 +29,37 @@ Rules.ALWAYS_KEEP = {
 -- BagMarks.lua): [itemID] = true. Not saved; emptied when the mailbox closes.
 Rules.held = {}
 
+-- "Keep at least N in my bags" for an item (db.keep[itemID] = N), or nil.
+function Rules.KeepAmount(db, itemID)
+  local amount = tonumber(db.keep and db.keep[itemID])
+  if not amount or amount < 1 then return nil end
+  return math.floor(amount)
+end
+
+-- Which of an item's outgoing stacks stay so that at least `amount` remain in the bags.
+-- Whole stacks only (nothing is split), and as few items as possible: the smallest stack
+-- that covers what is still missing; when none does, the biggest one, and on. Taking a
+-- stack out of `stacks` that wasn't picked never changes the pick, so a mail already
+-- on its way doesn't move the line. Returns the stacks that stay.
+function Rules.PickKept(stacks, amount)
+  local kept, left, need = {}, {}, amount
+  for i, stack in ipairs(stacks) do left[i] = stack end
+  while need > 0 and #left > 0 do
+    local pick
+    for i, stack in ipairs(left) do
+      if stack.count >= need and (not pick or stack.count < left[pick].count) then pick = i end
+    end
+    if not pick then
+      for i, stack in ipairs(left) do
+        if not pick or stack.count > left[pick].count then pick = i end
+      end
+    end
+    need = need - left[pick].count
+    kept[#kept + 1] = table.remove(left, pick)
+  end
+  return kept
+end
+
 function Rules.IsMailable(item, db)
   if not item or not item.itemID then return false end
   if item.isBound or item.isLocked then return false end

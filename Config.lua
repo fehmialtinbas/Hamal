@@ -448,9 +448,10 @@ local function destinationText(db, entry)
   if reason == "held" then return "|cff999999stays this time|r" end
   if entry.destination then
     local name = db.mules[entry.destination].name
-    if reason == "item" then return ("|cff66ff66%s|r (picked)"):format(name) end
+    local keep = entry.keep and (", keeps %d"):format(entry.keep) or ""
+    if reason == "item" then return ("|cff66ff66%s|r (picked)%s"):format(name, keep) end
     local def = ns.Categories.byKey[reason]
-    return ("|cff66ff66%s|r (%s)"):format(name, def and def.label:lower() or reason)
+    return ("|cff66ff66%s|r (%s)%s"):format(name, def and def.label:lower() or reason, keep)
   end
   return "|cff999999stays in bags|r"
 end
@@ -483,6 +484,38 @@ end
 local function chooseFor(itemID, choice, label)
   ns.Items.SetChoice(ns.db, itemID, choice or nil)
   ns.Print("%s %s.", label or ns.ItemLabel(itemID), describeChoice(ns.db, itemID))
+  changed()
+end
+
+-- How much of an item to keep in the bags, offered as whole stacks of it. A keep amount
+-- typed with /hamal keep is listed too while it is set.
+local KEEP_STACKS = { 1, 2, 3, 5 }
+
+local function keepChoices(itemID, current)
+  local max = ns.Stacker.MaxStack(itemID) or 1
+  if max < 1 then max = 1 end
+  local options, listed = { { label = "Send every stack", value = false } }, false
+  for _, n in ipairs(KEEP_STACKS) do
+    local amount = n * max
+    local label = ("Keep %d"):format(amount)
+    if max > 1 then label = ("Keep %d stack%s (%d)"):format(n, n > 1 and "s" or "", amount) end
+    options[#options + 1] = { label = label, value = amount }
+    listed = listed or amount == current
+  end
+  if current and not listed then
+    options[#options + 1] = { label = ("Keep %d"):format(current), value = current }
+  end
+  return options
+end
+
+local function keepFor(itemID, amount, label)
+  ns.Items.SetKeep(ns.db, itemID, amount or nil)
+  label = label or ns.ItemLabel(itemID)
+  if amount then
+    ns.Print("%s: at least %d stay in your bags.", label, amount)
+  else
+    ns.Print("%s: every stack goes again.", label)
+  end
   changed()
 end
 
@@ -523,6 +556,7 @@ local function onItemClick(row, mouseButton)
   end
   local db = ns.db
   local current = ns.Items.Choice(db, entry.itemID) or false
+  local keep = ns.Rules.KeepAmount(db, entry.itemID) or false
   MenuUtil.CreateContextMenu(row, function(_, root)
     root:CreateTitle(entry.name or ("item " .. entry.itemID))
     for _, option in ipairs(itemChoices(db)) do
@@ -530,6 +564,17 @@ local function onItemClick(row, mouseButton)
         function(value) return value == current end,
         ns.Safely(function(value) chooseFor(entry.itemID, value, entry.link or entry.name) end),
         option.value)
+    end
+    -- Only for an item that goes somewhere (or is kept back this visit with Alt-click).
+    if entry.destination or entry.reason == "held" then
+      if root.CreateDivider then root:CreateDivider() end
+      root:CreateTitle("Keep in my bags")
+      for _, option in ipairs(keepChoices(entry.itemID, keep or nil)) do
+        root:CreateRadio(option.label,
+          function(value) return value == keep end,
+          ns.Safely(function(value) keepFor(entry.itemID, value, entry.link or entry.name) end),
+          option.value)
+      end
     end
   end)
 end
@@ -601,7 +646,7 @@ local function buildItemsTab(pane)
     row:SetScript("OnReceiveDrag", ns.Safely(dropOnItemList))
     row:SetScript("OnEnter", ns.Safely(function(self)
       if not self.entry then return end
-      ns.Widgets.ShowItemTooltip(self, self.entry.itemID, "Click: choose where it goes\nRight-click: next choice")
+      ns.Widgets.ShowItemTooltip(self, self.entry.itemID, "Click: where it goes, how many to keep\nRight-click: next choice")
     end))
     row:SetScript("OnLeave", ns.Safely(ns.Widgets.HideTooltip))
     ui.itemRows[i] = row
@@ -636,7 +681,7 @@ local function buildItemsTab(pane)
   ui.itemsPage = text(pane, "", "GameFontDisableSmall", LEFT, bottom - 4)
   ui.itemsPage:ClearAllPoints()
   ui.itemsPage:SetPoint("RIGHT", ui.prevButton, "LEFT", -10, 0)
-  local hint = text(pane, "Click an item to choose where it goes (right-click: next choice). "
+  local hint = text(pane, "Click an item to choose where it goes and how many to keep. "
     .. "Drop an item from your bags on the list to always send it.", "GameFontDisableSmall", LEFT, bottom - 30)
   hint:SetWidth(WIDTH - 2 * LEFT)
 end

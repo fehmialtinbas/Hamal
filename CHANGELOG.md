@@ -1,5 +1,13 @@
 # Hamal
 
+## v0.1.7
+
+- **Keep some, send the rest:** click an item on the Items tab and choose how much of it stays in
+  your bags (1, 2, 3 or 5 stacks), or type `/hamal keep [item] 30` for any amount. At the
+  mailbox at least that much stays and the rest goes. Whole stacks stay (nothing is split), as
+  few items as possible. Kept stacks aren't greyed out, and their tooltip says how many you keep.
+  `/hamal keep` lists them, `/hamal keep [item] off` sends every stack again.
+
 ## v0.1.6
 
 - At the mailbox, **Alt-click** (**Option-click** on a Mac) an item in your bags to keep it there

@@ -143,6 +143,7 @@ function Items.Collect(db)
   end)
   for id in pairs(db.seen) do entry(id) end
   for id in pairs(db.exclude) do entry(id) end
+  for id in pairs(db.keep) do entry(id) end
   for _, mule in pairs(db.mules) do
     for id in pairs(mule.items) do entry(id) end
   end
@@ -159,6 +160,7 @@ function Items.Collect(db)
     e.icon = e.icon or ns.ItemIcon(id)
     e.isBound = (e.boundStacks or 0) > 0 and (e.freeStacks or 0) == 0
     e.destination, e.reason = Items.Destination(db, e, keys)
+    e.keep = ns.Rules.KeepAmount(db, id)
     e.group, e.groupLabel, e.groupRank = Items.GroupOf(e)
     list[#list + 1] = e
   end
@@ -193,6 +195,12 @@ function Items.SetChoice(db, itemID, choice)
   elseif choice and db.mules[choice] then
     db.mules[choice].items[itemID] = true
   end
+end
+
+-- At least `amount` of an item stay in the bags (whole stacks); nil or 0: every stack goes.
+function Items.SetKeep(db, itemID, amount)
+  amount = tonumber(amount)
+  db.keep[itemID] = (amount and amount >= 1) and math.floor(amount) or nil
 end
 
 -- Remember mailable items so they stay pickable after they leave your bags.
